@@ -140,20 +140,20 @@ def _load_audio_reports(csv_path, label: str) -> tuple[pd.DataFrame, list[str]]:
     long_df["fase"] = np.where(long_df["dia_missao"] < 0, "terra", "missao")
     return _finish(long_df), warnings
 
-def load_symptoms(source: str) -> pd.DataFrame:
-    """Sintomas relatados (texto, como foram ditos). Só existem nos reportes em áudio."""
+def load_spoken(source: str, column: str) -> pd.DataFrame:
+    """Textos ditos no check-in (coluna "sintomas" ou "medicamentos"), como foram ditos.
+    Só existem nos reportes em áudio."""
     columns = ["astronauta_id", "dia_missao", "data", "texto"]
     if source != "demo" or not config.DEMO_METRICS_CSV.exists():
         return pd.DataFrame(columns=columns)
     df = pd.read_csv(config.DEMO_METRICS_CSV, encoding="utf-8")
-    if "sintomas" not in df.columns:
+    if column not in df.columns:
         return pd.DataFrame(columns=columns)
     # Mesmo critério dos números: no mesmo dia, vale o reporte mais recente
     df["arquivo"] = df["arquivo"].map(lambda a: Path(str(a).replace("\\", "/")).name)
     df = df.sort_values("arquivo", kind="stable").drop_duplicates(config.KEY_COLS, keep="last")
-    df = df[df["sintomas"].notna() & (df["sintomas"].astype(str).str.strip() != "")]
-    return df.rename(columns={"sintomas": "texto"})[columns].reset_index(drop=True)
-
+    df = df[df[column].notna() & (df[column].astype(str).str.strip() != "")]
+    return df.rename(columns={column: "texto"})[columns].reset_index(drop=True)
 
 def _load_spreadsheet() -> tuple[pd.DataFrame, list[str]]:
     """Journal + sono do Excel, Terra e missão."""

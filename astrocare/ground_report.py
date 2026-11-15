@@ -13,11 +13,11 @@ O que o relatório contém:
    exercício e dosímetro (dose em valor absoluto: em órbita é estruturalmente
    maior que na Terra).
 5. Sintomas relatados no check-in (texto literal, sem interpretação).
-6. Uso de medicamentos (registros do módulo de emergência).
+6. Medicamentos utilizados, relatados no check-in (texto literal).
 7. Qualidade dos dados, método e aviso de que não é diagnóstico.
 
 Privacidade: as transcrições completas NÃO entram; só o trecho de sintomas,
-literal. O resumo do Gemini usa apenas indicadores agregados.
+literal, e o de medicamentos. O resumo do Gemini usa apenas indicadores agregados.
 
 Uso:
     python -m astrocare.ground_report AST-01 --fonte demo
@@ -39,7 +39,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import (Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 
-from astrocare import config, sim_clock
+from astrocare import config
 from astrocare.baseline import baseline_progress, compute_baseline
 from astrocare.comparison import (
     LEVELS, ROLLING_DAYS, NotEnoughDataError, compare_with_crew, daily_status,
@@ -118,13 +118,10 @@ TXT = {
         "s5_nota": "Texto exatamente como transcrito da fala do astronauta, sem interpretação.",
         "sem_sintomas": "Nenhum sintoma relatado no período.",
         "col_dia": "Dia", "col_data": "Data", "col_relato": "Relato",
-        "s6": "6. Uso de medicamentos",
-        "s6_nota": "Registros de baixa do estoque no módulo de emergência, por paciente.",
-        "sem_meds": "Nenhum medicamento registrado para este astronauta no período.",
-        "meds_fonte": "Registros do módulo de emergência disponíveis apenas para a missão "
-                      "simulada (fonte demo).",
-        "col_hora": "Data e hora", "col_med": "Medicamento", "col_qtd": "Qtd", "col_lote": "Lote",
-        "col_atend": "Atendimento", "col_resp": "Responsável", "col_etapa": "Etapa",
+        "s6": "6. Medicamentos utilizados",
+        "s6_nota": "Medicamentos relatados pelo astronauta no check-in, exatamente como transcritos "
+                   "da fala, sem interpretação.",
+        "sem_meds": "Sem medicamentos utilizados.",
         "s7": "7. Qualidade dos dados e método",
         "q_terra": "Padrão pessoal: {n} dias de registro na Terra ({a} de {b} dias do período).",
         "q_missao": "Missão: registro em {a} de {b} dias.",
@@ -186,13 +183,10 @@ TXT = {
                    "without interpretation.",
         "sem_sintomas": "No symptoms reported in this period.",
         "col_dia": "Day", "col_data": "Date", "col_relato": "Report",
-        "s6": "6. Medication use",
-        "s6_nota": "Inventory withdrawal records from the emergency module, by patient.",
-        "sem_meds": "No medication recorded for this astronaut in this period.",
-        "meds_fonte": "Emergency module records are available only for the simulated mission "
-                      "(demo source).",
-        "col_hora": "Date and time", "col_med": "Medication", "col_qtd": "Qty", "col_lote": "Lot",
-        "col_atend": "Care session", "col_resp": "Responsible", "col_etapa": "Step",
+        "s6": "6. Medications used",
+        "s6_nota": "Medications reported by the astronaut in the check-in, exactly as transcribed "
+                   "from speech (original language), without interpretation.",
+        "sem_meds": "No medications used.",
         "s7": "7. Data quality and method",
         "q_terra": "Individual baseline: {n} days of records on Earth ({a} of {b} days in the "
                    "period).",
@@ -290,33 +284,14 @@ def _dose_summary(data, ast, ref_day) -> dict | None:
     }
 
 
-def _symptoms(ast, source, ref_day) -> list[dict]:
+def _spoken(ast, source, ref_day, tipo) -> list[dict]:
+    """Textos ditos no check-in ("sintomas" ou "medicamentos"), do mais recente ao mais antigo."""
     from astrocare.storage import query
     rows = query("SELECT dia_missao, data, texto FROM relatos WHERE fonte = ? AND astronauta_id = ? "
-                 "AND tipo = 'sintomas' AND dia_missao <= ? ORDER BY dia_missao DESC",
-                 (source, ast, ref_day))
+                 "AND tipo = ? AND dia_missao <= ? ORDER BY dia_missao DESC",
+                 (source, ast, tipo, ref_day))
     return [{"dia": int(r.dia_missao), "data": str(r.data), "texto": r.texto}
             for r in rows.itertuples()]
-
-
-def _medications(ast, source, ref_day) -> list[dict] | None:
-    """Baixas do estoque de emergência em atendimentos deste paciente (None = não se aplica)."""
-    if source != "demo" or not config.EMERGENCY_DB_PATH.exists():
-        return None
-    from astrocare.emergency.db import read
-    limit = sim_clock.date_of(ref_day).isoformat()
-    rows = read(
-        """SELECT mv.registrado_em, m.nome, mv.quantidade, m.unidade, l.lote, mv.responsavel,
-                  mv.motivo, a.id AS atendimento, a.protocolo_id
-           FROM movimentacoes mv JOIN lotes l ON l.id = mv.lote_id
-           JOIN medicamentos m ON m.id = l.medicamento_id
-           JOIN atendimentos a ON a.id = mv.atendimento_id
-           WHERE mv.tipo = 'consumo' AND a.paciente = ? AND substr(mv.registrado_em, 1, 10) <= ?
-           ORDER BY mv.id""", (ast, limit))
-    return [{"registrado_em": r["registrado_em"].replace("T", " "), "medicamento": r["nome"],
-             "quantidade": r["quantidade"], "unidade": r["unidade"], "lote": r["lote"],
-             "responsavel": r["responsavel"], "etapa": r["motivo"],
-             "atendimento": r["atendimento"], "protocolo": r["protocolo_id"]} for r in rows]
 
 # --------------------------------------------------------------------------
 # Gráficos (PNG em memória, embutido no PDF)
@@ -494,8 +469,8 @@ def build_report(ast: str, source: str, use_ai: bool = True, dia: int | None = N
         "metricas": _metric_rows(behavioral),
         "monitoramento": _metric_rows(monitoring),
         "dosimetro": _dose_summary(data, ast, ref_day),
-        "sintomas": _symptoms(ast, source, ref_day),
-        "medicamentos": _medications(ast, source, ref_day),
+        "sintomas": _spoken(ast, source, ref_day, "sintomas"),
+        "medicamentos": _spoken(ast, source, ref_day, "medicamentos"),
         "resumo_ia": ai_text,
         "modelo_ia": model,
         "aviso": t["aviso"],
@@ -589,10 +564,10 @@ def render_pdf(r: dict, path) -> None:
     story += [P(t["s2"], h2), P(t["legenda"], note), img(r["_charts"]["comportamentais"])]
     header = [t["col_metrica"], t["col_padrao"], t["col_faixa"], t["col_7d"], t["col_var"],
               t["col_desvios"], t["col_situacao"]]
-    rows = [[config.label(m["metrica"], lang), _fmt(m["padrao_terra"], 2),
-             t["faixa"].format(a=_fmt(m["faixa_tipica"][0], 2), b=_fmt(m["faixa_tipica"][1], 2)),
-             _fmt(m["media_7_dias"], 2), _fmt(m["variacao_pct"], 1, "%"),
-             _fmt(m["desvios_vs_padrao"], 1),
+    rows = [[config.label(m["metrica"], lang), F(m["padrao_terra"], 2),
+             t["faixa"].format(a=F(m["faixa_tipica"][0], 2), b=F(m["faixa_tipica"][1], 2)),
+             F(m["media_7_dias"], 2), F(m["variacao_pct"], 1, "%"),
+             F(m["desvios_vs_padrao"], 1),
              f"{STATUS[m['situacao']][1]} {t['status'][m['situacao']]}"] for m in r["metricas"]]
     widths = [44 * mm, 18 * mm, 30 * mm, 18 * mm, 18 * mm, 16 * mm, 26 * mm]
     story += [P(t["s3"], h2), grid(header, rows, widths)]
@@ -609,9 +584,9 @@ def render_pdf(r: dict, path) -> None:
               t["col_situacao"]]
     rows = [[config.label(m["metrica"], lang) + (f" ({config.unit(m['metrica'], lang)})"
                                                  if config.unit(m["metrica"], lang) else ""),
-             _fmt(m["padrao_terra"], 2),
-             t["faixa"].format(a=_fmt(m["faixa_tipica"][0], 2), b=_fmt(m["faixa_tipica"][1], 2)),
-             _fmt(m["media_7_dias"], 2), _fmt(m["variacao_pct"], 1, "%"),
+             F(m["padrao_terra"], 2),
+             t["faixa"].format(a=F(m["faixa_tipica"][0], 2), b=F(m["faixa_tipica"][1], 2)),
+             F(m["media_7_dias"], 2), F(m["variacao_pct"], 1, "%"),
              t[m["posicao_na_faixa"]]] for m in r["monitoramento"]]
     story += [P(t["sec_tabela"], h3),
               grid(header, rows, [52 * mm, 20 * mm, 32 * mm, 20 * mm, 18 * mm, 28 * mm])
@@ -622,11 +597,11 @@ def render_pdf(r: dict, path) -> None:
     if dose:
         unit = config.unit(DOSE, lang)
         block.append(grid(["", ""], [
-            [t["dose_terra"], f"{_fmt(dose['terra_mediana_uSv_dia'], 1)} {unit}"],
-            [t["dose_missao"], f"{_fmt(dose['missao_media_7d_uSv_dia'], 1)} {unit}"],
-            [t["dose_acum"], f"{_fmt(dose['missao_acumulada_mSv'], 2)} mSv "
+            [t["dose_terra"], f"{F(dose['terra_mediana_uSv_dia'], 1)} {unit}"],
+            [t["dose_missao"], f"{F(dose['missao_media_7d_uSv_dia'], 1)} {unit}"],
+            [t["dose_acum"], f"{F(dose['missao_acumulada_mSv'], 2)} mSv "
                              f"({t['dose_dias'].format(n=dose['missao_dias_com_registro'])})"],
-            [t["dose_razao"], f"{_fmt(dose['razao_missao_terra'], 0)}×"],
+            [t["dose_razao"], f"{F(dose['razao_missao_terra'], 0)}×"],
         ], [80 * mm, 90 * mm]))
     story.append(KeepTogether(block))
 
@@ -639,19 +614,12 @@ def render_pdf(r: dict, path) -> None:
     else:
         story.append(P(t["sem_sintomas"]))
 
-    # 6. Medicamentos
+    # 6. Medicamentos (relatados no check-in)
     story += [P(t["s6"], h2), P(t["s6_nota"], note)]
-    meds = r["medicamentos"]
-    if meds is None:
-        story.append(P(t["meds_fonte"]))
-    elif meds:
-        story.append(grid(
-            [t["col_hora"], t["col_med"], t["col_qtd"], t["col_lote"], t["col_atend"],
-             t["col_resp"], t["col_etapa"]],
-            [[m["registrado_em"], m["medicamento"], f"{m['quantidade']} {m['unidade']}", m["lote"],
-              f"#{m['atendimento']} ({m['protocolo'] or '-'})", m["responsavel"], m["etapa"]]
-             for m in meds],
-            [30 * mm, 32 * mm, 18 * mm, 16 * mm, 24 * mm, 24 * mm, 26 * mm]))
+    if r["medicamentos"]:
+        story.append(grid([t["col_dia"], t["col_data"], t["col_relato"]],
+                          [[m["dia"], m["data"], f"“{m['texto']}”"] for m in r["medicamentos"]],
+                          [15 * mm, 25 * mm, 130 * mm]))
     else:
         story.append(P(t["sem_meds"]))
 
@@ -695,6 +663,14 @@ def generate(ast: str, source: str, use_ai: bool = True, dia: int | None = None,
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return pdf_path, json_path, report["status_atual"]
 
+def generate_all(ast: str, source: str, use_ai: bool = True, dia: int | None = None) -> tuple:
+    """Gera o relatório nos dois idiomas. Retorna (lista de arquivos, status)."""
+    files, status = [], None
+    for lang in config.LANGUAGES:
+        pdf_path, json_path, status = generate(ast, source, use_ai, dia, lang)
+        files += [pdf_path, json_path]
+    return files, status
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Relatório comparativo para a base em Terra (PDF)")
@@ -702,17 +678,19 @@ if __name__ == "__main__":
     parser.add_argument("--todos", action="store_true", help="um relatório por astronauta")
     parser.add_argument("--fonte", choices=config.SOURCES, default="demo")
     parser.add_argument("--sem-ia", action="store_true", help="não chamar o Gemini")
-    parser.add_argument("--idioma", choices=sorted(TXT), default="pt")
+    parser.add_argument("--idioma", choices=sorted(TXT) + ["ambos"], default="ambos")
     args = parser.parse_args()
     if not args.todos and not args.astronauta_id:
         parser.error("informe o astronauta (ex.: AST-01) ou use --todos")
 
     targets = sorted(config.ASTRONAUTS) if args.todos else [args.astronauta_id]
+    langs = config.LANGUAGES if args.idioma == "ambos" else (args.idioma,)
     for ast in targets:
         try:
-            pdf_path, json_path, status = generate(ast, args.fonte, use_ai=not args.sem_ia,
-                                                   lang=args.idioma)
-            print(f"{ast}: {TXT[args.idioma]['status'][status]:8} -> {pdf_path.name} (+ .json)")
+            for lang in langs:
+                pdf_path, json_path, status = generate(ast, args.fonte, use_ai=not args.sem_ia,
+                                                       lang=lang)
+                print(f"{ast}: {TXT[lang]['status'][status]:8} -> {pdf_path.name} (+ .json)")
         except (NotEnoughDataError, FileNotFoundError) as exc:
             print(f"{ast}: não gerado — {exc}")
     print(f"\nArquivos em {config.REPORTS_DIR}")

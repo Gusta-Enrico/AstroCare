@@ -29,7 +29,7 @@ from astrocare.baseline import compute_baseline
 from astrocare.comparison import (
     compare_with_crew, daily_status, flag_metrics, score_individual, smooth,
 )
-from astrocare.ingestion import load_dataset, load_symptoms
+from astrocare.ingestion import load_dataset, load_spoken
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS reportes (
@@ -107,7 +107,9 @@ def sync(source: str) -> dict:
             ["fonte", "astronauta_id", "dia_missao", "status",
              "metricas_atencao", "metricas_alerta"]]
 
-    relatos = load_symptoms(source).assign(fonte=source, tipo="sintomas")
+    relatos = pd.concat([load_spoken(source, tipo).assign(tipo=tipo)
+                         for tipo in ("sintomas", "medicamentos")], ignore_index=True)
+    relatos = relatos.assign(fonte=source)
     relatos = relatos.assign(data=relatos["data"].astype(str))[
         ["fonte", "astronauta_id", "dia_missao", "data", "tipo", "texto"]]
 

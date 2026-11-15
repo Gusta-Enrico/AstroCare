@@ -1,35 +1,35 @@
 """Processa um reporte em áudio como um DIA DE MISSÃO do cenário simulado.
 
 Modo de uso do protótipo: só simulação. Nenhum dado real é guardado como
-"fase Terra". O padrão da Terra vem do cenário simulado (demo_data.py),
-e cada gravação entra como o dia de missão correspondente à data dela.
+"fase Terra". O padrão da Terra vem do cenário simulado (demo_data.py).
 
 Fluxo:
     WAV -> métricas de voz (local) -> transcrição (Gemini)
         -> ID do astronauta DITO no início -> notas do check-in -> métricas de texto
-        -> inserido no cenário simulado no dia de missão da data da gravação
-        -> relatório do dia (comparação com o padrão da Terra) na hora
+        -> inserido no cenário simulado no próximo dia de missão do astronauta
+        -> banco atualizado + relatório completo (PDF em português e inglês)
 
 Se não der para identificar o astronauta pela fala, o reporte NÃO é
 inserido: um reporte na pessoa errada distorceria a comparação dela.
 
-O dia da missão vem da DATA REAL da gravação (ver sim_clock.py). Duas
-gravações no mesmo dia caem no mesmo dia de missão: vale a mais recente.
+Dia da missão: sem --dia, é o dia seguinte ao último registro do astronauta.
+Com --dia, só é aceito se houver registros suficientes nos dias anteriores
+(senão o dia não pode ser avaliado e nada é salvo). Gravar de novo um dia
+que já existe substitui o reporte daquele dia.
 
 Uso:
-    python -m astrocare.audio_pipeline --gravar              (dia de hoje)
-    python -m astrocare.audio_pipeline --gravar --dia 55     (força um dia, p/ testes)
+    python -m astrocare.audio_pipeline --gravar              (próximo dia livre)
+    python -m astrocare.audio_pipeline --gravar --dia 45     (escolhe o dia, p/ testes)
     python -m astrocare.audio_pipeline data/audio/REPORTE_20261114_163358.wav
 """
 import argparse
-import re
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 from astrocare import config, sim_clock
-from astrocare.checkin_parser import parse_checkin, parse_symptoms
+from astrocare.checkin_parser import parse_checkin, parse_medications, parse_symptoms
 from astrocare.llm import transcribe_audio
 from astrocare.physio_sim import PhysioSimulator
 from astrocare.speaker_id import parse_spoken_id
@@ -39,22 +39,10 @@ from astrocare.voice_features import extract_voice_features
 # Ordem FIXA das colunas no CSV. Sem isso, cada linha seria gravada na
 # ordem em que as métricas foram calculadas e os valores se desalinhariam.
 CSV_COLUMNS = (
-    ["astronauta_id", "dia_missao", "data", "arquivo", "transcricao", "sintomas"]
+    ["astronauta_id", "dia_missao", "data", "arquivo", "transcricao", "sintomas", "medicamentos"]
     + config.METRICS_VOICE + config.METRICS_TEXT + config.METRICS_SELF_REPORT
     + config.METRICS_MONITORING
 )
-
-# REPORTE_20261114_163358.wav -> 14/11/2026
-FILENAME_DATE = re.compile(r"_(\d{8})_\d{6}$")
-
-
-def recording_date(wav_path: str) -> date:
-    """Data em que o áudio foi gravado: pelo nome do arquivo ou, se não
-    houver data no nome, pela data de modificação do arquivo."""
-    match = FILENAME_DATE.search(Path(wav_path).stem)
-    if match:
-        return datetime.strptime(match.group(1), "%Y%m%d").date()
-    return date.fromtimestamp(Path(wav_path).stat().st_mtime)
 
 
 def process_audio(wav_path: str) -> tuple[dict, str | None]:
@@ -70,7 +58,9 @@ def process_audio(wav_path: str) -> tuple[dict, str | None]:
 
     if transcript:
         # Sintomas: guardados como texto; saem do texto do sentimento
-        row["sintomas"], text_without_symptoms = parse_symptoms(transcript)
+        # Medicamentos e sintomas: guardados como texto; saem do texto do sentimento
+        row["medicamentos"], text_without_meds = parse_medications(transcript)
+        row["sintomas"], text_without_symptoms = parse_symptoms(text_without_meds)
         scores, text_without_checkin = parse_checkin(text_without_symptoms)
         row.update(scores)
         # Sentimento: sem o check-in ("estresse", "solidão" não são o relato).
@@ -82,6 +72,7 @@ def process_audio(wav_path: str) -> tuple[dict, str | None]:
         row.update({m: None for m in config.METRICS_TEXT + config.METRICS_SELF_REPORT
                     + config.METRICS_SELF_REPORT_SLEEP})
         row["sintomas"] = None
+        print(f"  medicamentos utilizados: {row.get('medicamentos') or 'sem medicamentos utilizados'}")
     return row, reason
 
 
@@ -89,6 +80,32 @@ def _load_scenario() -> pd.DataFrame:
     if not config.DEMO_METRICS_CSV.exists():
         raise SystemExit("Cenário simulado não encontrado. Rode antes: python -m astrocare.demo_data")
     return pd.read_csv(config.DEMO_METRICS_CSV, encoding="utf-8")
+
+
+def choose_day(astronauta_id: str, requested: int | None) -> int:
+    """Dia da missão do reporte.
+
+    Sem --dia: o dia seguinte ao último registro do astronauta (sempre avaliável).
+    Com --dia: só aceita se houver registros suficientes nos dias anteriores para a
+    média móvel; senão recusa ANTES de salvar, em vez de criar um reporte isolado.
+    """
+    from astrocare.comparison import MIN_DAYS_IN_WINDOW, ROLLING_DAYS
+
+    scenario = _load_scenario()
+    days = set(scenario.loc[(scenario["astronauta_id"] == astronauta_id)
+                            & (scenario["dia_missao"] >= 0), "dia_missao"].astype(int))
+    next_day = max(days, default=-1) + 1
+    if requested is None:
+        return next_day
+    if requested < 0:
+        raise SystemExit("O dia da missão começa em 0 (dias negativos são a fase Terra simulada).")
+    recent = {d for d in days if requested - ROLLING_DAYS < d < requested}
+    if len(recent) + 1 < MIN_DAYS_IN_WINDOW:
+        raise SystemExit(
+            f"\n⚠ Dia {requested} não pode ser avaliado: {astronauta_id} tem {len(recent)} registro(s) "
+            f"nos {ROLLING_DAYS - 1} dias anteriores (mínimo {MIN_DAYS_IN_WINDOW - 1}).\n"
+            f"  Nada foi salvo. Grave sem --dia (vai para o dia {next_day}) ou use --dia {next_day}.")
+    return requested
 
 
 def insert_in_scenario(row: dict, day: int, day_date: date) -> tuple[dict, bool]:
@@ -123,30 +140,28 @@ def print_metrics(row: dict) -> None:
 
 
 def evaluate_day(astronauta_id: str, day: int) -> None:
-    """Atualiza o banco e gera TODOS os relatórios e o gráfico do dia."""
-    from astrocare import ground_report, tracking_chart
-    from astrocare.daily_report import build, save_text_file
-    from astrocare.storage import save_daily_report, sync
+    """Atualiza o banco e gera o relatório completo do dia (PDF em português e inglês)."""
+    from astrocare import ground_report
+    from astrocare.comparison import MIN_DAYS_IN_WINDOW, ROLLING_DAYS, NotEnoughDataError
+    from astrocare.storage import sync
 
-    # 1. Banco atualizado (histórico para gráficos e consultas)
+    # 1. Banco atualizado (histórico usado pelo relatório)
     sync("demo")
 
-    # 2. Relatório curto do dia: banco + arquivo .txt
-    text, status, changed, day = build(astronauta_id, day, "demo")
-    save_daily_report("demo", astronauta_id, day,
-                      datetime.now().isoformat(timespec="seconds"), status, changed, text)
-    files = [save_text_file(astronauta_id, day, "demo", text)]
-    print("\n" + "=" * 70 + "\n" + text + "\n" + "=" * 70)
+    # 2. Relatório completo (PDF + JSON), em português e inglês
+    try:
+        files, status = ground_report.generate_all(astronauta_id, "demo", dia=day)
+    except (ValueError, NotEnoughDataError):
+        # A média móvel precisa de registros suficientes nos últimos dias.
+        # Um reporte isolado fica salvo, mas ainda não dá para avaliá-lo:
+        # o sistema avisa em vez de chutar.
+        print(f"\n⚠ Relatório do dia {day} NÃO gerado: a média móvel precisa de pelo menos "
+              f"{MIN_DAYS_IN_WINDOW} registros de {astronauta_id} nos últimos {ROLLING_DAYS} dias."
+              f"\n  O reporte foi salvo. Grave sem --dia para usar o próximo dia livre.")
+        raise SystemExit(1)
 
-    # 3. Relatório completo para a base em Terra (HTML + JSON)
-    html_path, json_path, _ = ground_report.generate(astronauta_id, "demo", dia=day)
-    files += [html_path, json_path]
-
-    # 4. Gráfico de acompanhamento
-    metrics = tracking_chart._most_deviated("demo", astronauta_id)
-    files.append(Path(tracking_chart.draw("demo", astronauta_id, metrics)))
-
-    print("\nArquivos gerados:")
+    print(f"\nSituação de {astronauta_id} no dia {day}: {ground_report.TXT['pt']['status'][status]}")
+    print("\nRelatórios gerados:")
     for f in files:
         print(f"  {f}")
 
@@ -157,7 +172,7 @@ if __name__ == "__main__":
     group.add_argument("wav", nargs="?", help="arquivo .wav já gravado")
     group.add_argument("--gravar", action="store_true", help="grava agora e processa")
     parser.add_argument("--dia", type=int, metavar="N",
-                        help="força o dia da missão (padrão: pela data da gravação)")
+                        help="dia da missão (padrão: o dia seguinte ao último registro)")
     args = parser.parse_args()
 
     if args.gravar:
@@ -175,14 +190,8 @@ if __name__ == "__main__":
         raise SystemExit(1)
 
     ast = row["astronauta_id"]
-    if args.dia is not None:
-        day, day_date = args.dia, sim_clock.date_of(args.dia)
-    else:
-        day_date = recording_date(wav_path)
-        day = sim_clock.mission_day(day_date)
-        if day < 0:
-            raise SystemExit(f"Gravação de {day_date:%d/%m/%Y} é anterior ao lançamento simulado "
-                             f"({sim_clock.launch():%d/%m/%Y}). Use --dia N para escolher o dia.")
+    day = choose_day(ast, args.dia)
+    day_date = sim_clock.date_of(day)
 
     row, replaced = insert_in_scenario(row, day, day_date)
     print(f"\n{ast} | {day_date:%d/%m/%Y} = dia {day} da missão | inserido no cenário SIMULADO")

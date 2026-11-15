@@ -84,8 +84,24 @@ def parse_checkin(transcript: str) -> tuple[dict, str]:
 # --- Sintomas físicos agudos (texto livre) -----------------------------------------
 # "sem sintomas" / "nenhum sintoma": guardado como foi dito.
 _NO_SYMPTOMS = re.compile(r"\b(?:nenhum\s+sintoma|sem\s+sintomas?)\b", re.IGNORECASE)
-# "Sintomas: dor de cabeça leve." -> o que vem depois, até o fim da frase.
-_SYMPTOMS = re.compile(r"\bsintomas?\b\s*(?:[:\-–]|foi|foram|s[aã]o)?\s*([^.;!?]+)", re.IGNORECASE)
+# "Sintomas: dor de cabeça leve." -> o que vem depois, até o fim da frase
+# (ou até começar a parte dos medicamentos, se vier na mesma frase).
+_SYMPTOMS = re.compile(
+    r"\bsintomas?\b\s*(?:[:\-–]|foi|foram|s[aã]o|de|com)?\s*"
+    r"((?:(?!\b(?:medicamentos?|medica[cç](?:[aã]o|[oõ]es)|rem[eé]dios?)\b)[^.;!?])+)",
+    re.IGNORECASE)
+
+# Medicamentos usados, ditos no check-in: "Medicamentos: paracetamol 500."
+_NO_MEDICATIONS = re.compile(
+    r"\b(?:sem\s+(?:medicamentos?|medica[cç](?:[aã]o|[oõ]es)|rem[eé]dios?)"
+    r"|nenhum\s+(?:medicamento|rem[eé]dio)"
+    r"|n[aã]o\s+(?:tomei|usei|utilizei)\s+(?:nenhum\s+)?(?:medicamentos?|rem[eé]dios?))\b",
+    re.IGNORECASE)
+_MEDICATIONS = re.compile(
+    r"\b(?:medicamentos?|medica[cç](?:[aã]o|[oõ]es)|rem[eé]dios?)\b\s*"
+    r"(?:usados?|utilizados?|tomados?|foi|foram|s[aã]o|de|com)?\s*(?:[:\-–]\s*)?"
+    r"((?:(?!\bsintomas?\b)[^.;!?])+)",
+    re.IGNORECASE)
 
 
 def parse_symptoms(transcript: str) -> tuple[str | None, str]:
@@ -106,18 +122,40 @@ def parse_symptoms(transcript: str) -> tuple[str | None, str]:
     return None, transcript
 
 
+def parse_medications(transcript: str) -> tuple[str | None, str]:
+    """Retorna (medicamentos como foram ditos, texto sem esse trecho).
+
+    "Sem medicamentos" ou nenhuma menção -> None (o relatório mostra
+    "Sem medicamentos utilizados"). Nada é interpretado: nome e dose saem
+    exatamente como foram transcritos.
+    """
+    none_match = _NO_MEDICATIONS.search(transcript)
+    if none_match:
+        rest = transcript[:none_match.start()] + " " + transcript[none_match.end():]
+        return None, rest
+    match = _MEDICATIONS.search(transcript)
+    text = match.group(1).strip(" ,:-–") if match else ""
+    if len(text) >= 2:
+        rest = transcript[:match.start()] + " " + transcript[match.end():]
+        return text, rest
+    return None, transcript
+
+
 if __name__ == "__main__":
     exemplos = [
         "Hoje foi um dia tranquilo. Check-in: humor oito, fadiga está em 3, "
         "estresse dois e solidão nota 2.",
         "Check-in diário AST-01. Humor 7, fadiga 4, estresse 3, solidão 2, qualidade do sono "
-        "seis, recuperação cinco. Sintomas: dor de cabeça leve e congestão nasal.",
-        "Humor oito, sono zero, recuperação foi sete. Sem sintomas.",
+        "seis, recuperação cinco. Sintomas: dor de cabeça leve. Medicamentos: paracetamol 500.",
+        "Humor oito, sono zero, recuperação foi sete. Sem sintomas. Sem medicamentos.",
+        "Humor 5. Sintomas de dor nas costas, medicamentos usados: ibuprofeno 400.",
         "Dormi pouco mas estou bem. Humor 6.",
     ]
     for texto in exemplos:
-        sintomas, resto = parse_symptoms(texto)
+        remedios, resto = parse_medications(texto)
+        sintomas, resto = parse_symptoms(resto)
         notas, _ = parse_checkin(resto)
         print(texto)
         print("  notas:", {k: v for k, v in notas.items() if v is not None})
-        print("  sintomas:", sintomas, "\n")
+        print("  sintomas:", sintomas)
+        print("  medicamentos:", remedios, "\n")
