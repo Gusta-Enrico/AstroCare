@@ -26,7 +26,8 @@ from astrocare.llm import gemini_summary
 TOP_METRICS = 6  # quantas métricas mostrar no relatório
 
 
-def build_indicators(astronauta_id: str, dia: int, source: str = "planilha") -> dict:
+def build_indicators(astronauta_id: str, dia: int, source: str = "planilha",
+                     lang: str = "pt") -> dict:
     """Monta os indicadores de um astronauta em um dia, só com números do código."""
     data, _ = load_dataset(source)
     baseline = compute_baseline(data)
@@ -37,7 +38,7 @@ def build_indicators(astronauta_id: str, dia: int, source: str = "planilha") -> 
             f"Veja o progresso com: python -m astrocare.baseline --fonte {source}"
         )
     flagged = flag_metrics(compare_with_crew(smooth(scored)))
-    daily = daily_status(flagged)
+    daily = daily_status(flagged, source)
 
     day_status = daily[(daily["astronauta_id"] == astronauta_id) & (daily["dia_missao"] == dia)]
     if day_status.empty:
@@ -56,7 +57,7 @@ def build_indicators(astronauta_id: str, dia: int, source: str = "planilha") -> 
     # Métricas do dia, com valor real reconstruído a partir do z
     rows = flagged[(flagged["astronauta_id"] == astronauta_id) & (flagged["dia_missao"] == dia)]
     rows = rows.merge(baseline[["astronauta_id", "metrica", "mediana", "escala_robusta"]])
-    rows = rows[rows["sinal_atencao"]].copy()
+    rows = rows[rows["sinal_atencao"] & rows["metrica"].isin(config.ALERT_METRICS[source])].copy()
     rows["valor_7d"] = rows["mediana"] + rows["z_suavizado"] * rows["escala_robusta"]
     rows = rows.reindex(rows["z_vs_tripulacao"].abs().sort_values(ascending=False).index)
 
@@ -66,8 +67,9 @@ def build_indicators(astronauta_id: str, dia: int, source: str = "planilha") -> 
         if r["metrica"] not in config.NO_PERCENT_METRICS and r["mediana"] != 0:
             pct = round(100 * (r["valor_7d"] - r["mediana"]) / abs(r["mediana"]), 1)
         metrics.append({
-            "metrica": config.METRIC_LABELS.get(r["metrica"], r["metrica"]),
-            "direcao": "acima" if r["z_suavizado"] > 0 else "abaixo",
+            "metrica": config.label(r["metrica"], lang),
+            "direcao": ("acima" if r["z_suavizado"] > 0 else "abaixo") if lang == "pt"
+                       else ("above" if r["z_suavizado"] > 0 else "below"),
             "media_7_dias": round(r["valor_7d"], 2),
             "padrao_pessoal": round(r["mediana"], 2),
             "variacao_pct": pct,
@@ -114,8 +116,8 @@ def build_base_report(ind: dict) -> str:
         lines.append("Obs.: menos de 3 astronautas nesta fonte; comparação feita só "
                      "com o padrão pessoal (sem descontar eventos coletivos).")
     if ind["desvio_coletivo_da_tripulacao"]:
-        lines.append("Obs.: a tripulação como um todo também está fora do padrão neste "
-                     "período (possível evento coletivo).")
+        lines.append("Obs.: sem dados suficientes da tripulação neste período; comparação "
+                     "feita só com o padrão pessoal (sem descontar eventos coletivos).")
     return "\n".join(lines)
 
 

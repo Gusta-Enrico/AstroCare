@@ -93,7 +93,11 @@ def load_dataset(source: str = "planilha") -> tuple[pd.DataFrame, list[str]]:
     """
     if source not in config.SOURCES:
         raise ValueError(f"Fonte desconhecida: {source}. Use uma de {config.SOURCES}")
-    return _load_spreadsheet() if source == "planilha" else _load_audio_reports()
+    if source == "planilha":
+        return _load_spreadsheet()
+    if source == "demo":
+        return _load_audio_reports(config.DEMO_METRICS_CSV, "reportes_demo")
+    return _load_audio_reports(config.AUDIO_METRICS_CSV, "reportes_audio")
 
 
 def _finish(data: pd.DataFrame) -> pd.DataFrame:
@@ -104,14 +108,13 @@ def _finish(data: pd.DataFrame) -> pd.DataFrame:
     return data.reset_index(drop=True)
 
 
-def _load_audio_reports() -> tuple[pd.DataFrame, list[str]]:
-    """Reportes em áudio já processados (data/processed/reportes_audio.csv)."""
-    if not config.AUDIO_METRICS_CSV.exists():
-        raise FileNotFoundError(
-            "Nenhum reporte em áudio processado ainda. "
-            "Rode: python -m astrocare.audio_pipeline --gravar AST-XX"
-        )
-    df = pd.read_csv(config.AUDIO_METRICS_CSV, encoding="utf-8")
+def _load_audio_reports(csv_path, label: str) -> tuple[pd.DataFrame, list[str]]:
+    """Reportes em áudio já processados (CSV no formato do audio_pipeline)."""
+    if not csv_path.exists():
+        hint = ("python -m astrocare.demo_data" if label == "reportes_demo"
+                else "python -m astrocare.audio_pipeline --gravar AST-XX")
+        raise FileNotFoundError(f"Arquivo não encontrado: {csv_path.name}. Rode: {hint}")
+    df = pd.read_csv(csv_path, encoding="utf-8")
     warnings = []
 
     # Mais de um reporte no mesmo dia: vale o mais recente.
@@ -120,20 +123,36 @@ def _load_audio_reports() -> tuple[pd.DataFrame, list[str]]:
     df = df.sort_values("arquivo", kind="stable")
     dup = df.duplicated(subset=config.KEY_COLS, keep="last").sum()
     if dup:
-        warnings.append(f"[reportes_audio] {dup} reporte(s) repetido(s) no mesmo dia: "
+        warnings.append(f"[{label}] {dup} reporte(s) repetido(s) no mesmo dia: "
                         "mantido o mais recente")
         df = df.drop_duplicates(subset=config.KEY_COLS, keep="last")
 
-    warnings += validate(df, "reportes_audio", config.METRICS_JOURNAL)
+    # Monitoramento ampliado: só as colunas que existirem (CSVs antigos não têm)
+    metrics = config.METRICS_JOURNAL + [m for m in config.METRICS_MONITORING if m in df.columns]
+    warnings += validate(df, label, metrics)
     long_df = df.melt(
         id_vars=config.KEY_COLS + ["data"],
-        value_vars=config.METRICS_JOURNAL,
+        value_vars=metrics,
         var_name="metrica",
         value_name="valor",
     )
     # Dia negativo = antes do lançamento = fase Terra
     long_df["fase"] = np.where(long_df["dia_missao"] < 0, "terra", "missao")
     return _finish(long_df), warnings
+
+def load_symptoms(source: str) -> pd.DataFrame:
+    """Sintomas relatados (texto, como foram ditos). Só existem nos reportes em áudio."""
+    columns = ["astronauta_id", "dia_missao", "data", "texto"]
+    if source != "demo" or not config.DEMO_METRICS_CSV.exists():
+        return pd.DataFrame(columns=columns)
+    df = pd.read_csv(config.DEMO_METRICS_CSV, encoding="utf-8")
+    if "sintomas" not in df.columns:
+        return pd.DataFrame(columns=columns)
+    # Mesmo critério dos números: no mesmo dia, vale o reporte mais recente
+    df["arquivo"] = df["arquivo"].map(lambda a: Path(str(a).replace("\\", "/")).name)
+    df = df.sort_values("arquivo", kind="stable").drop_duplicates(config.KEY_COLS, keep="last")
+    df = df[df["sintomas"].notna() & (df["sintomas"].astype(str).str.strip() != "")]
+    return df.rename(columns={"sintomas": "texto"})[columns].reset_index(drop=True)
 
 
 def _load_spreadsheet() -> tuple[pd.DataFrame, list[str]]:

@@ -1,0 +1,172 @@
+{
+  "id": "SANS",
+  "versao": "1.0",
+  "status": "DEMONSTRACAO",
+  "fonte": {
+    "pt": "Protocolos_Emergencia_Microgravidade_PT.pdf, seção 2 (págs. 3-6)",
+    "en": "Microgravity_Emergency_Protocols_EN.pdf, section 2 (pp. 3-6)"
+  },
+  "nome": {
+    "pt": "SANS (Síndrome Neuro-Ocular Associada ao Voo Espacial / Hipertensão Intracraniana Aguda)",
+    "en": "SANS (Spaceflight Associated Neuro-ocular Syndrome / Acute Intracranial Hypertension)"
+  },
+  "referencias": {
+    "pt": "NASA HRP Evidence Report: Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS) (Brunstetter et al.), NASA Space Medicine Clinical Practice Guideline (CPG) for SANS, NASA-STD-3001 (LBNP Protocols).",
+    "en": "NASA HRP Evidence Report: Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS) (Brunstetter et al.), NASA Space Medicine Clinical Practice Guideline (CPG) for SANS, NASA-STD-3001 (LBNP Protocols)."
+  },
+  "regras_criticas": {
+    "pt": "Causado pelo deslocamento cefálico de fluidos (cephalad fluid shift) e exacerbado por hipercapnia de cabine (ppCO2). O uso de acetazolamida exige monitoramento rigoroso de hidratação e cálcio urinário pelo risco elevado de nefrolitíase espacial.",
+    "en": "Caused by the cephalad fluid shift and worsened by cabin hypercapnia (ppCO2). Acetazolamide use requires strict monitoring of hydration and urinary calcium because of the high risk of spaceflight kidney stones (nephrolithiasis)."
+  },
+  "palavras_chave": {
+    "pt": [
+      "turvação visual",
+      "cefaleia",
+      "pressão retro-orbital",
+      "triagem periódica"
+    ],
+    "en": [
+      "blurred vision",
+      "headache",
+      "retro-orbital pressure",
+      "periodic screening"
+    ]
+  },
+  "inicio": "SANS-01",
+  "nos": {
+    "SANS-01": {
+      "titulo": {
+        "pt": "Gatilho e Controle Ambiental de CO2",
+        "en": "Trigger and Environmental CO2 Control"
+      },
+      "gatilho": {
+        "pt": "Queixa de turvação visual, cefaleia, pressão retro-orbital ou triagem periódica programada.",
+        "en": "Complaint of blurred vision, headache, retro-orbital pressure, or scheduled periodic screening."
+      },
+      "acao": {
+        "pt": "Consultar telemetria ambiental do sistema ECLSS para pressão parcial de dióxido de carbono (ppCO2).",
+        "en": "Query the ECLSS environmental telemetry for the partial pressure of carbon dioxide (ppCO2)."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": { "pt": "ppCO2 = Elevado", "en": "ppCO2 = Elevated" },
+            "acao": {
+              "pt": "Aumentar imediatamente a depuração (scrubbing) de CO2 da cabine.",
+              "en": "Immediately increase cabin CO2 scrubbing."
+            },
+            "no": "SANS-02"
+          }
+        ],
+        "senao": { "no": "SANS-02" }
+      }
+    },
+    "SANS-02": {
+      "titulo": {
+        "pt": "Exames Point-of-Care Oculares",
+        "en": "Point-of-Care Eye Exams"
+      },
+      "acao": {
+        "pt": "Executar acuidade visual, Grade de Amsler e tonometria. Realizar POCUS ocular para medir o Diâmetro da Bainha do Nervo Óptico (ONSD) e Tomografia de Coerência Óptica (OCT).",
+        "en": "Perform visual acuity, Amsler Grid and tonometry. Perform ocular POCUS to measure the Optic Nerve Sheath Diameter (ONSD) and Optical Coherence Tomography (OCT)."
+      },
+      "transicao": { "tipo": "proximo", "no": "SANS-03" }
+    },
+    "SANS-03": {
+      "titulo": {
+        "pt": "Estratificação de Gravidade",
+        "en": "Severity Stratification"
+      },
+      "criterios": {
+        "pt": "Critérios de Alarme Agudo: ONSD > 5.8 mm, edema de disco óptico (papiledema) Grau ≥ 2, perda de campo visual ou déficit neurológico focal.",
+        "en": "Acute Alarm Criteria: ONSD > 5.8 mm, optic disc edema (papilledema) Grade ≥ 2, visual field loss or focal neurological deficit."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Qualquer critério de alarme = SIM",
+              "en": "Any alarm criterion = YES"
+            },
+            "no": "SANS-04B"
+          }
+        ],
+        "senao": {
+          "rotulo": {
+            "pt": "Quadro leve ou crônico",
+            "en": "Mild or chronic presentation"
+          },
+          "no": "SANS-04A"
+        }
+      }
+    },
+    "SANS-04A": {
+      "titulo": {
+        "pt": "Manejo Conservador / Subagudo",
+        "en": "Conservative / Subacute Management"
+      },
+      "acao": {
+        "pt": "Ajustar óculos de grau variável (Space Anticipation Glasses). Iniciar contramedida mecânica com sessões diárias de LBNP (Lower Body Negative Pressure). Reavaliar com OCT e POCUS ocular em 7 dias.",
+        "en": "Adjust the variable-prescription glasses (Space Anticipation Glasses). Start the mechanical countermeasure with daily LBNP (Lower Body Negative Pressure) sessions. Reassess with OCT and ocular POCUS in 7 days."
+      },
+      "transicao": {
+        "tipo": "fim",
+        "texto": {
+          "pt": "Fim do ciclo (monitoramento contínuo).",
+          "en": "End of cycle (continuous monitoring)."
+        }
+      }
+    },
+    "SANS-04B": {
+      "titulo": {
+        "pt": "Protocolo Agudo de Redução da Pressão Intracraniana",
+        "en": "Acute Intracranial Pressure Reduction Protocol"
+      },
+      "acao": {
+        "pt": "Posicionar astronauta em câmara/traje LBNP entre -25 mmHg e -40 mmHg por 30–60 min para sequestrar fluidos para os membros inferiores. Iniciar Acetazolamida 250–500 mg VO a cada 12h.",
+        "en": "Place the astronaut in the LBNP chamber/suit at -25 mmHg to -40 mmHg for 30–60 min to sequester fluids in the lower limbs. Start Acetazolamide 250–500 mg PO every 12h."
+      },
+      "alerta": {
+        "pt": "ALERTA OBRIGATÓRIO: Ativar monitoramento intensivo de ingesta hídrica e cálcio urinário devido ao risco alto de cálculo renal (nefrolitíase) induzido por acetazolamida em microgravidade.",
+        "en": "MANDATORY ALERT: Activate intensive monitoring of fluid intake and urinary calcium because of the high risk of kidney stones (nephrolithiasis) induced by acetazolamide in microgravity."
+      },
+      "materiais": ["Acetazolamida 250 mg"],
+      "transicao": { "tipo": "proximo", "no": "SANS-05" }
+    },
+    "SANS-05": {
+      "titulo": {
+        "pt": "Reavaliação em 24–48 Horas",
+        "en": "Reassessment at 24–48 Hours"
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Melhora clínica = SIM AND Redução do ONSD = SIM",
+              "en": "Clinical improvement = YES AND ONSD reduction = YES"
+            },
+            "acao": {
+              "pt": "Manter sessões diárias de LBNP e iniciar desmame gradual da acetazolamida.",
+              "en": "Continue daily LBNP sessions and start gradual tapering of acetazolamide."
+            },
+            "fim": true
+          }
+        ],
+        "senao": {
+          "rotulo": {
+            "pt": "Sem melhora OR Piora neurológica",
+            "en": "No improvement OR Neurological worsening"
+          },
+          "acao": {
+            "pt": "Avaliar punção lombar diagnóstica/terapêutica guiada por ultrassom e transmitir pacote de teleconsulta assíncrona prioritária para o controle de missão na Terra.",
+            "en": "Consider an ultrasound-guided diagnostic/therapeutic lumbar puncture and transmit a priority asynchronous teleconsultation package to mission control on Earth."
+          },
+          "fim": true
+        }
+      }
+    }
+  }
+}

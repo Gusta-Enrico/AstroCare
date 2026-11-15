@@ -5,3 +5,9 @@ google-genai
 numpy
 praat-parselmouth
 sounddevice
+matplotlib
+scikit-learn
+joblib
+vosk
+pyttsx3
+reportlab

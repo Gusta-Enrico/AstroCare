@@ -1,0 +1,204 @@
+{
+  "id": "PCR",
+  "versao": "1.0",
+  "status": "DEMONSTRACAO",
+  "fonte": {
+    "pt": "Protocolos_Emergencia_Microgravidade_PT.pdf, seção 1 (págs. 1-3)",
+    "en": "Microgravity_Emergency_Protocols_EN.pdf, section 1 (pp. 1-3)"
+  },
+  "nome": {
+    "pt": "Parada Cardiorrespiratória (PCR) em Microgravidade",
+    "en": "Cardiac Arrest (CA) in Microgravity"
+  },
+  "referencias": {
+    "pt": "NASA-STD-3001 Vol. 1 & 2, ISS Integrated Medical Group (IMG) Medical Checklist, NASA ExMC EMCL (Cardiac Arrest).",
+    "en": "NASA-STD-3001 Vol. 1 & 2, ISS Integrated Medical Group (IMG) Medical Checklist, NASA ExMC EMCL (Cardiac Arrest)."
+  },
+  "regras_criticas": {
+    "pt": "Exige ancoragem física antes das compressões torácicas; via aérea supraglótica é preferível à intubação orotraqueal; critérios de terminação de esforços consideram o estoque finito de O2 da nave.",
+    "en": "Physical anchoring is required before chest compressions; a supraglottic airway is preferred over endotracheal intubation; termination-of-resuscitation criteria take into account the spacecraft's finite O2 supply."
+  },
+  "palavras_chave": {
+    "pt": [
+      "parada cardiorrespiratória",
+      "assístole",
+      "fibrilação ventricular",
+      "taquicardia ventricular sem pulso",
+      "perda súbita de consciência"
+    ],
+    "en": [
+      "cardiac arrest",
+      "asystole",
+      "ventricular fibrillation",
+      "pulseless ventricular tachycardia",
+      "sudden loss of consciousness"
+    ]
+  },
+  "inicio": "PCR-01",
+  "nos": {
+    "PCR-01": {
+      "titulo": {
+        "pt": "Gatilho e Segurança Ambiental",
+        "en": "Trigger and Environmental Safety"
+      },
+      "gatilho": {
+        "pt": "Assístole, Fibrilação Ventricular (FV), Taquicardia Ventricular Sem Pulso (TVSP) ou perda súbita de consciência.",
+        "en": "Asystole, Ventricular Fibrillation (VF), Pulseless Ventricular Tachycardia (pVT) or sudden loss of consciousness."
+      },
+      "acao": {
+        "pt": "Verificar sensores ambientais da cabine (vazamento de CO2, amônia ou fogo).",
+        "en": "Check the cabin environmental sensors (CO2 leak, ammonia or fire)."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Perigo ambiental = SIM",
+              "en": "Environmental hazard = YES"
+            },
+            "acao": {
+              "pt": "Colocar máscara PBA (Portable Breathing Apparatus) e evacuar o módulo antes de iniciar o atendimento.",
+              "en": "Put on the PBA mask (Portable Breathing Apparatus) and evacuate the module before starting care."
+            },
+            "no": "PCR-02"
+          }
+        ],
+        "senao": { "no": "PCR-02" }
+      }
+    },
+    "PCR-02": {
+      "titulo": {
+        "pt": "Confirmação Clínica e Alarme",
+        "en": "Clinical Confirmation and Alarm"
+      },
+      "acao": {
+        "pt": "Confirmar inconsciência e ausência de pulso central em < 10 segundos. Ativar alarme de emergência médica da nave e solicitar DEA e Kit ACLS.",
+        "en": "Confirm unresponsiveness and absence of a central pulse in < 10 seconds. Activate the spacecraft medical emergency alarm and request the AED and the ACLS Kit."
+      },
+      "transicao": { "tipo": "proximo", "no": "PCR-03" }
+    },
+    "PCR-03": {
+      "titulo": {
+        "pt": "Ancoragem Física e Início da RCP",
+        "en": "Physical Anchoring and Start of CPR"
+      },
+      "acao": {
+        "pt": "Fixar paciente na maca de contenção (Crew Medical Restraint System - CMRS) OU aplicar técnica de ancoragem Handstand / Evetts-Russomano. Iniciar compressões torácicas (100–120 comp/min, profundidade 5–6 cm) com metrônomo ativo.",
+        "en": "Secure the patient to the restraint stretcher (Crew Medical Restraint System - CMRS) OR apply the Handstand / Evetts-Russomano anchoring technique. Start chest compressions (100–120 compressions/min, depth 5–6 cm) with the metronome on."
+      },
+      "transicao": { "tipo": "proximo", "no": "PCR-04" }
+    },
+    "PCR-04": {
+      "titulo": {
+        "pt": "Análise de Ritmo (DEA)",
+        "en": "Rhythm Analysis (AED)"
+      },
+      "acao": {
+        "pt": "Instalar pás do DEA e analisar ritmo cardíaco.",
+        "en": "Attach the AED pads and analyze the cardiac rhythm."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Ritmo = Chocável [FV ou TVSP]",
+              "en": "Rhythm = Shockable [VF or pVT]"
+            },
+            "no": "PCR-04A"
+          }
+        ],
+        "senao": {
+          "rotulo": {
+            "pt": "Ritmo = Não Chocável [AESP ou Assístole]",
+            "en": "Rhythm = Non-shockable [PEA or Asystole]"
+          },
+          "no": "PCR-04B"
+        }
+      }
+    },
+    "PCR-04A": {
+      "titulo": {
+        "pt": "Ramo Chocável (FV / TVSP)",
+        "en": "Shockable Branch (VF / pVT)"
+      },
+      "acao": {
+        "pt": "Afastar tripulação flutuante e checar isolamento de superfícies metálicas. Aplicar choque bifásico de 200 J. Retomar RCP por 2 min e garantir acesso venoso (IV) ou intraósseo (IO).",
+        "en": "Move floating crew members away and check isolation from metal surfaces. Deliver a 200 J biphasic shock. Resume CPR for 2 min and secure intravenous (IV) or intraosseous (IO) access."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Condição após 2º choque: Se persistir FV/TVSP",
+              "en": "Condition after the 2nd shock: If VF/pVT persists"
+            },
+            "acao": {
+              "pt": "Administrar Epinefrina 1 mg IV/IO a cada 3–5 min + Amiodarona 300 mg IV/IO. Inserir dispositivo de via aérea supraglótica.",
+              "en": "Give Epinephrine 1 mg IV/IO every 3–5 min + Amiodarone 300 mg IV/IO. Insert a supraglottic airway device."
+            },
+            "materiais": ["Epinefrina 1 mg", "Amiodarona 300 mg"],
+            "no": "PCR-05"
+          }
+        ],
+        "senao": { "lacuna": true }
+      }
+    },
+    "PCR-04B": {
+      "titulo": {
+        "pt": "Ramo Não Chocável (AESP / Assístole)",
+        "en": "Non-Shockable Branch (PEA / Asystole)"
+      },
+      "acao": {
+        "pt": "Retomar RCP por 2 min e administrar Epinefrina 1 mg IV/IO imediata (repetir a cada 3–5 min). Inserir dispositivo de via aérea supraglótica + capnografia (ETCO2).",
+        "en": "Resume CPR for 2 min and give Epinephrine 1 mg IV/IO immediately (repeat every 3–5 min). Insert a supraglottic airway device + capnography (ETCO2)."
+      },
+      "materiais": ["Epinefrina 1 mg"],
+      "transicao": { "tipo": "proximo", "no": "PCR-05" }
+    },
+    "PCR-05": {
+      "titulo": {
+        "pt": "Investigação de Causas Reversíveis Espaciais",
+        "en": "Investigation of Space-Specific Reversible Causes"
+      },
+      "acao": {
+        "pt": "Avaliar e tratar causas reversíveis: Hipóxia, Hipovolemia (redução basal de 10–15% do volume plasmático no espaço), Hipercalemia, Tamponamento cardíaco, Pneumotórax hipertensivo, Tromboembolismo Pulmonar (TEP) e Toxinas ambientais.",
+        "en": "Assess and treat reversible causes: Hypoxia, Hypovolemia (baseline 10–15% reduction in plasma volume in space), Hyperkalemia, Cardiac tamponade, Tension pneumothorax, Pulmonary Embolism (PE) and Environmental toxins."
+      },
+      "transicao": { "tipo": "proximo", "no": "PCR-06" }
+    },
+    "PCR-06": {
+      "titulo": { "pt": "Avaliação de Desfecho", "en": "Outcome Assessment" },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Retorno da Circulação Espontânea [RCE] = SIM",
+              "en": "Return of Spontaneous Circulation [ROSC] = YES"
+            },
+            "acao": {
+              "pt": "Iniciar cuidados pós-PCR: manter SpO2 entre 94%–98%, PAS > 90 mmHg, realizar ECG de 12 derivações e POCUS cardíaco.",
+              "en": "Start post-cardiac arrest care: keep SpO2 between 94%–98%, SBP > 90 mmHg, perform a 12-lead ECG and cardiac POCUS."
+            },
+            "fim": true
+          },
+          {
+            "condicao": {
+              "pt": "Sem RCE após 20-30 min AND ETCO2 < 10 mmHg",
+              "en": "No ROSC after 20-30 min AND ETCO2 < 10 mmHg"
+            },
+            "acao": {
+              "pt": "Acionar critério ético/logístico de terminação de esforços para preservar o suprimento de oxigênio e estoque farmacológico da missão.",
+              "en": "Apply the ethical/logistical termination-of-resuscitation criterion to preserve the mission's oxygen supply and pharmaceutical stock."
+            },
+            "fim": true
+          }
+        ],
+        "senao": { "lacuna": true }
+      }
+    }
+  }
+}

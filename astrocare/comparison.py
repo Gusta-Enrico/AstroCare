@@ -68,23 +68,27 @@ def compare_with_crew(smoothed: pd.DataFrame) -> pd.DataFrame:
     Usa só os outros (e não a tripulação inteira) para que a própria
     pessoa não "puxe" a referência na direção dela.
 
-    Com menos de MIN_CREW astronautas, a camada fica DESLIGADA: a mediana
-    de 1 ou 2 pessoas não representa "a tripulação". Nesse caso só vale a
+    A camada vale quando a tripulação tem pelo menos MIN_CREW astronautas
+    E, naquele dia e métrica, pelo menos um colega tem dados. Caso contrário
+    (tripulação pequena ou nenhum colega com reportes recentes), vale só a
     comparação individual, e a coluna com_tripulacao = False avisa isso.
+    Sem esse cuidado, a falta de dados dos colegas impediria qualquer alerta.
     """
     wide = smoothed.pivot_table(
         index=["dia_missao", "metrica"], columns="astronauta_id", values="z_suavizado"
     )
-    crew_on = len(wide.columns) >= MIN_CREW
+    big_enough = len(wide.columns) >= MIN_CREW
     result = []
     for ast in wide.columns:
-        others = wide.drop(columns=ast).median(axis=1) if crew_on else float("nan")
+        others = wide.drop(columns=ast)
+        crew_on = (others.notna().sum(axis=1) >= 1) & big_enough
+        crew_median = others.median(axis=1).where(crew_on)
         result.append(pd.DataFrame({
             "astronauta_id": ast,
             "z_suavizado": wide[ast],
-            "z_tripulacao": others,
+            "z_tripulacao": crew_median,
             # Sem tripulação, o desvio "vs. tripulação" é o próprio desvio individual
-            "z_vs_tripulacao": wide[ast] - others if crew_on else wide[ast],
+            "z_vs_tripulacao": (wide[ast] - crew_median).where(crew_on, wide[ast]),
             "com_tripulacao": crew_on,
         }).reset_index())
     return pd.concat(result, ignore_index=True).dropna(subset=["z_suavizado"])
@@ -109,13 +113,19 @@ def _streak(s: pd.Series) -> pd.Series:
     return s.groupby(blocks).cumsum()
 
 
-def daily_status(flagged: pd.DataFrame) -> pd.DataFrame:
+def daily_status(flagged: pd.DataFrame, source: str) -> pd.DataFrame:
     """Resumo por astronauta e dia, com a regra de persistência.
 
     status: "normal", "atencao" ou "alerta" (o mais grave vale).
+    Só CONTAM as métricas de config.ALERT_METRICS[source]; as do monitoramento
+    ampliado aparecem no relatório, mas não mudam o status.
     """
+    counted = flagged["metrica"].isin(config.ALERT_METRICS[source])
+    signals = flagged[["astronauta_id", "dia_missao"]].copy()
+    for level in LEVELS:
+        signals[f"sinal_{level}"] = flagged[f"sinal_{level}"] & counted
     daily = (
-        flagged.groupby(["astronauta_id", "dia_missao"])
+        signals.groupby(["astronauta_id", "dia_missao"])
         [[f"sinal_{level}" for level in LEVELS]].sum()
         .reset_index()
     )
@@ -140,7 +150,7 @@ def run_comparison(source: str = "planilha") -> tuple[pd.DataFrame, pd.DataFrame
     if scored.empty:
         raise NotEnoughDataError("Ainda não há reportes da fase de missão para comparar.")
     flagged = flag_metrics(compare_with_crew(smooth(scored)))
-    return flagged, daily_status(flagged)
+    return flagged, daily_status(flagged, source)
 
 
 if __name__ == "__main__":
@@ -151,8 +161,8 @@ if __name__ == "__main__":
     except NotEnoughDataError as exc:
         raise SystemExit(f"Ainda não é possível comparar: {exc}")
     if not flagged["com_tripulacao"].all():
-        print("AVISO: menos de 3 astronautas nesta fonte; comparação com a "
-              "tripulação desligada (só comparação individual).\n")
+            print("AVISO: em alguns dias faltaram dados da tripulação; nesses dias a "
+              "comparação foi só com o padrão pessoal.\n")
 
     print("Primeiro dia de cada nível, por astronauta:")
     for ast, group in daily.groupby("astronauta_id"):

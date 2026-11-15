@@ -1,0 +1,181 @@
+{
+  "id": "PSIQ",
+  "versao": "1.0",
+  "status": "DEMONSTRACAO",
+  "fonte": {
+    "pt": "Protocolos_Emergencia_Microgravidade_PT.pdf, seção 3 (págs. 7-9)",
+    "en": "Microgravity_Emergency_Protocols_EN.pdf, section 3 (pp. 7-9)"
+  },
+  "nome": {
+    "pt": "Emergências Psiquiátricas e Comportamentais Agudas",
+    "en": "Acute Psychiatric and Behavioral Emergencies"
+  },
+  "referencias": {
+    "pt": "NASA HRP Evidence Report: Risk of Adverse Cognitive or Behavioral Conditions and Psychiatric Disorders (Slack et al.), ISS IMG Medical Checklist (Behavioral Emergencies), NASA-STD-3001 Vol. 1 (Behavioral Health and Performance).",
+    "en": "NASA HRP Evidence Report: Risk of Adverse Cognitive or Behavioral Conditions and Psychiatric Disorders (Slack et al.), ISS IMG Medical Checklist (Behavioral Emergencies), NASA-STD-3001 Vol. 1 (Behavioral Health and Performance)."
+  },
+  "regras_criticas": {
+    "pt": "Proteger a integridade da nave primeiro (bloqueio de escotilhas e comandos); descartar causas orgânicas espaciais antes da sedação psiquiátrica; monitorar intervalo QTc no ECG após administração de antipsicóticos.",
+    "en": "Protect the integrity of the spacecraft first (lock hatches and controls); rule out space-related organic causes before psychiatric sedation; monitor the QTc interval on the ECG after antipsychotic administration."
+  },
+  "palavras_chave": {
+    "pt": [
+      "agitação psicomotora",
+      "delírio",
+      "paranoia",
+      "autoagressão",
+      "heteroagressão"
+    ],
+    "en": [
+      "psychomotor agitation",
+      "delirium",
+      "paranoia",
+      "harm to self",
+      "harm to others"
+    ]
+  },
+  "inicio": "PSIQ-01",
+  "nos": {
+    "PSIQ-01": {
+      "titulo": {
+        "pt": "Contenção Ambiental e Segurança da Nave",
+        "en": "Environmental Containment and Spacecraft Safety"
+      },
+      "gatilho": {
+        "pt": "Agitação psicomotora extrema, delírio, paranoia aguda ou risco de auto/heteroagressão.",
+        "en": "Extreme psychomotor agitation, delirium, acute paranoia, or risk of harm to self or others."
+      },
+      "acao": {
+        "pt": "Realizar avaliação primária de segurança da tripulação e ativar Modo Restrito no painel da espaçonave (bloqueio de comandos críticos e escotilhas).",
+        "en": "Perform a primary crew safety assessment and activate Restricted Mode on the spacecraft panel (lock critical controls and hatches)."
+      },
+      "transicao": { "tipo": "proximo", "no": "PSIQ-02" }
+    },
+    "PSIQ-02": {
+      "titulo": {
+        "pt": "Triagem de Exclusão Orgânica Espacial",
+        "en": "Space-Related Organic Cause Screening"
+      },
+      "acao": {
+        "pt": "Medir glicemia capilar (HGT), oximetria (SpO2), nível de ppCO2 da cabine, temperatura corporal e dosimetria de radiação.",
+        "en": "Measure capillary blood glucose, oximetry (SpO2), cabin ppCO2 level, body temperature and radiation dosimetry."
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Causa orgânica detectada = SIM",
+              "en": "Organic cause detected = YES"
+            },
+            "acao": {
+              "pt": "Tratar imediatamente a causa base (hipóxia, hipercapnia, hipoglicemia ou sepse). Encerrar fluxo psiquiátrico primário.",
+              "en": "Immediately treat the underlying cause (hypoxia, hypercapnia, hypoglycemia or sepsis). End the primary psychiatric pathway."
+            },
+            "fim": true
+          }
+        ],
+        "senao": { "no": "PSIQ-03" }
+      }
+    },
+    "PSIQ-03": {
+      "titulo": {
+        "pt": "Avaliação de Cooperatividade",
+        "en": "Cooperation Assessment"
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Paciente aceita abordagem verbal = SIM",
+              "en": "Patient accepts verbal approach = YES"
+            },
+            "no": "PSIQ-03A"
+          }
+        ],
+        "senao": {
+          "rotulo": {
+            "pt": "Risco físico iminente",
+            "en": "Imminent physical risk"
+          },
+          "no": "PSIQ-03B"
+        }
+      }
+    },
+    "PSIQ-03A": {
+      "titulo": {
+        "pt": "Desescalada Verbal e Terapia Oral",
+        "en": "Verbal De-escalation and Oral Therapy"
+      },
+      "acao": {
+        "pt": "Isolar o tripulante em módulo silencioso e reduzir estímulos luminosos. Aplicar técnica de desescalada verbal e ofertar medicação oral: Lorazepam 1–2 mg VO OU Olanzapina 5–10 mg comprimido orodispersível.",
+        "en": "Isolate the crew member in a quiet module and reduce light stimuli. Apply verbal de-escalation and offer oral medication: Lorazepam 1–2 mg PO OR Olanzapine 5–10 mg orally disintegrating tablet."
+      },
+      "materiais": ["Lorazepam 1 mg VO", "Olanzapina 5 mg orodispersível"],
+      "transicao": { "tipo": "proximo", "no": "PSIQ-04" }
+    },
+    "PSIQ-03B": {
+      "titulo": {
+        "pt": "Contenção Física em Microgravidade e Sedação Parenteral",
+        "en": "Physical Restraint in Microgravity and Parenteral Sedation"
+      },
+      "acao": {
+        "pt": "Mobilizar 3 a 4 tripulantes ancorados. Aplicar cintos de contenção na maca médica (CMRS) protegendo cabeça e via aérea. Administrar sedação química rápida: Haloperidol 5 mg IM + Lorazepam 2 mg IM OU Midazolam 5 mg IM/Intranasal.",
+        "en": "Mobilize 3 to 4 anchored crew members. Apply restraint straps on the medical stretcher (CMRS), protecting the head and airway. Give rapid chemical sedation: Haloperidol 5 mg IM + Lorazepam 2 mg IM OR Midazolam 5 mg IM/Intranasal."
+      },
+      "materiais": [
+        "Haloperidol 5 mg IM",
+        "Lorazepam 2 mg IM",
+        "Midazolam 5 mg"
+      ],
+      "transicao": { "tipo": "proximo", "no": "PSIQ-04" }
+    },
+    "PSIQ-04": {
+      "titulo": {
+        "pt": "Monitoramento Pós-Sedação Obrigatório",
+        "en": "Mandatory Post-Sedation Monitoring"
+      },
+      "acao": {
+        "pt": "Manter monitoramento contínuo de SpO2, frequência respiratória, pressão arterial e ECG contínuo com foco na medição do intervalo QTc (risco de arritmia por antipsicóticos em microgravidade).",
+        "en": "Maintain continuous monitoring of SpO2, respiratory rate, blood pressure and continuous ECG, focusing on the QTc interval (risk of antipsychotic-induced arrhythmia in microgravity)."
+      },
+      "transicao": { "tipo": "proximo", "no": "PSIQ-05" }
+    },
+    "PSIQ-05": {
+      "titulo": {
+        "pt": "Avaliação de Estabilização e Complicações",
+        "en": "Stabilization and Complications Assessment"
+      },
+      "transicao": {
+        "tipo": "condicional",
+        "casos": [
+          {
+            "condicao": {
+              "pt": "Estabilizado = SIM AND Sem depressão respiratória",
+              "en": "Stabilized = YES AND No respiratory depression"
+            },
+            "acao": {
+              "pt": "Reavaliar privação de sono, reajustar ciclo claro-escuro circadiano e acionar suporte psicológico assíncrono com a equipe de terra.",
+              "en": "Reassess sleep deprivation, readjust the circadian light-dark cycle and activate asynchronous psychological support with the ground team."
+            },
+            "fim": true
+          },
+          {
+            "condicao": {
+              "pt": "Depressão respiratória OR Arritmia ventricular",
+              "en": "Respiratory depression OR Ventricular arrhythmia"
+            },
+            "acao": {
+              "pt": "Iniciar suporte ventilatório com bolsa-válvula-máscara; administrar Flumazenil em caso de sobredose de benzodiazepínico ou Sulfato de Magnésio em caso de Torsades de Pointes por alargamento de QTc.",
+              "en": "Start ventilatory support with a bag-valve-mask; give Flumazenil for benzodiazepine overdose or Magnesium Sulfate for Torsades de Pointes caused by QTc prolongation."
+            },
+            "materiais": ["Flumazenil", "Sulfato de Magnésio"],
+            "fim": true
+          }
+        ],
+        "senao": { "lacuna": true }
+      }
+    }
+  }
+}

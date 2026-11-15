@@ -1,6 +1,11 @@
 """Extrai do texto transcrito as notas de check-in DITAS pelo astronauta.
 
-Exemplo de fala: "Check-in: humor oito, fadiga 3, estresse dois, solidão 2."
+Exemplo de fala: "Check-in: humor oito, fadiga 3, estresse dois, solidão 2,
+qualidade do sono sete, recuperação seis. Sintomas: dor de cabeça leve."
+
+Escalas: humor, fadiga, estresse e solidão vão de 1 a 10; qualidade do sono
+e recuperação ao acordar vão de 0 a 10. Sintomas são guardados como TEXTO,
+exatamente como foram ditos (sem interpretação).
 
 Regras:
 - Só extrai números falados logo depois do nome da escala.
@@ -13,7 +18,7 @@ import re
 import unicodedata
 
 NUMBER_WORDS = {
-    "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3, "quatro": 4,
+    "zero": 0, "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3, "quatro": 4,
     "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10,
 }
 
@@ -23,11 +28,18 @@ SCALES = {
     "fadiga_1a10": ["fadiga", "cansaco"],
     "estresse_1a10": ["estresse", "stress"],
     "solidao_1a10": ["solidao"],
+    # Mais específico primeiro: "qualidade do sono" antes de "sono"
+    "qualidade_sono_0a10": ["qualidade do sono", "qualidade de sono", "sono"],
+    "recuperacao_0a10": ["recuperacao"],
 }
+# Faixa aceita por escala (fora dela, a nota é descartada)
+SCALE_RANGES = {"qualidade_sono_0a10": (0, 10), "recuperacao_0a10": (0, 10)}
+DEFAULT_RANGE = (1, 10)
+
 
 # Palavras que podem aparecer entre a escala e o número
 # ("humor nota 8", "fadiga está em 3", "estresse: dois")
-FILLERS = r"(?:e|esta|estou|em|de|nota|com|igual|a|o)"
+FILLERS = r"(?:e|esta|estou|em|de|nota|com|igual|a|o|foi)"
 NUMBER = r"(\d{1,2}(?:[.,]\d)?|" + "|".join(NUMBER_WORDS) + r")"
 
 # O número precisa FECHAR a expressão: depois dele vem pontuação, fim do
@@ -41,11 +53,11 @@ def _normalize(text: str) -> str:
     return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
-def _to_number(token: str) -> float | None:
+def _to_number(token: str, low: float, high: float) -> float | None:
     value = NUMBER_WORDS.get(token)
     if value is None:
         value = float(token.replace(",", "."))
-    return float(value) if 1 <= value <= 10 else None
+    return float(value) if low <= value <= high else None
 
 
 def parse_checkin(transcript: str) -> tuple[dict, str]:
@@ -62,14 +74,50 @@ def parse_checkin(transcript: str) -> tuple[dict, str]:
             pattern = rf"\b{kw}\b[\s:,-]*(?:{FILLERS}\s+){{0,3}}{NUMBER}{END}"
             match = re.search(pattern, text)
             if match:
-                scores[column] = _to_number(match.group(1))
+                scores[column] = _to_number(match.group(1), *SCALE_RANGES.get(column, DEFAULT_RANGE))
                 text = text[:match.start()] + " " + text[match.end():]
                 break
     text = re.sub(r"\bcheck\s*-?\s*in\b", " ", text)
     return scores, text
 
 
+# --- Sintomas físicos agudos (texto livre) -----------------------------------------
+# "sem sintomas" / "nenhum sintoma": guardado como foi dito.
+_NO_SYMPTOMS = re.compile(r"\b(?:nenhum\s+sintoma|sem\s+sintomas?)\b", re.IGNORECASE)
+# "Sintomas: dor de cabeça leve." -> o que vem depois, até o fim da frase.
+_SYMPTOMS = re.compile(r"\bsintomas?\b\s*(?:[:\-–]|foi|foram|s[aã]o)?\s*([^.;!?]+)", re.IGNORECASE)
+
+
+def parse_symptoms(transcript: str) -> tuple[str | None, str]:
+    """Retorna (sintomas como foram ditos, texto sem o trecho dos sintomas).
+
+    Sem menção a sintomas -> None. Nada é interpretado nem resumido: o texto
+    vai para o relatório exatamente como foi transcrito.
+    """
+    none_match = _NO_SYMPTOMS.search(transcript)
+    if none_match:
+        rest = transcript[:none_match.start()] + " " + transcript[none_match.end():]
+        return none_match.group(0), rest
+    match = _SYMPTOMS.search(transcript)
+    text = match.group(1).strip(" ,:-–") if match else ""
+    if len(text) >= 2:
+        rest = transcript[:match.start()] + " " + transcript[match.end():]
+        return text, rest
+    return None, transcript
+
+
 if __name__ == "__main__":
-    exemplo = ("Hoje foi um dia tranquilo. Check-in: humor oito, fadiga está em 3, "
-               "estresse dois e solidão nota 2.")
-    print(parse_checkin(exemplo))
+    exemplos = [
+        "Hoje foi um dia tranquilo. Check-in: humor oito, fadiga está em 3, "
+        "estresse dois e solidão nota 2.",
+        "Check-in diário AST-01. Humor 7, fadiga 4, estresse 3, solidão 2, qualidade do sono "
+        "seis, recuperação cinco. Sintomas: dor de cabeça leve e congestão nasal.",
+        "Humor oito, sono zero, recuperação foi sete. Sem sintomas.",
+        "Dormi pouco mas estou bem. Humor 6.",
+    ]
+    for texto in exemplos:
+        sintomas, resto = parse_symptoms(texto)
+        notas, _ = parse_checkin(resto)
+        print(texto)
+        print("  notas:", {k: v for k, v in notas.items() if v is not None})
+        print("  sintomas:", sintomas, "\n")

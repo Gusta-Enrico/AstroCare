@@ -42,9 +42,27 @@ NUNCA especule sobre causas ou sobre o estado mental da pessoa.
 automaticamente pelo sistema.
 - Escreva em português, em tom neutro e técnico, em no máximo 2 parágrafos curtos."""
 
+SYSTEM_PROMPT_EN = """You write behavioral monitoring reports for the medical team of a \
+space mission. You receive indicators ALREADY COMPUTED by a statistical system, as JSON \
+(field names are in Portuguese; metric names are already in English).
+
+Mandatory rules:
+- Describe only what is in the data: which metrics deviated from the individual baseline \
+and from the crew, in which direction and for how long.
+- NEVER diagnose, NEVER name disorders, diseases or psychological conditions, NEVER \
+speculate about causes or about the person's mental state.
+- Do not invent numbers: use only the values in the JSON.
+- Do not give clinical recommendations. At most, suggest that the medical team review it.
+- Do not include legal disclaimers or the word "diagnosis": the disclaimer is added \
+automatically by the system.
+- Write in English, in a neutral, technical tone suited to an aerospace medical \
+context, in at most 2 short paragraphs."""
+PROMPTS = {"pt": SYSTEM_PROMPT, "en": SYSTEM_PROMPT_EN}
+
 TRANSCRIBE_PROMPT = """Transcreva este áudio em português, palavra por palavra, \
 exatamente como foi falado. Não resuma, não corrija, não comente e não acrescente \
-nada. Responda somente com a transcrição."""
+nada. Se o falante disser um identificador de astronauta (por exemplo "A S T zero \
+dois"), escreva-o no formato AST-02. Responda somente com a transcrição."""
 
 MAX_INLINE_AUDIO_MB = 18      # limite para enviar o áudio direto na requisição
 ATTEMPTS_PER_MODEL = 2        # tentativas em cada modelo antes de trocar
@@ -99,17 +117,18 @@ def _generate(contents, generation_config) -> tuple[str | None, str | None]:
 
 
 def _contains_forbidden(text: str) -> list[str]:
+    """Verifica os termos proibidos em PT e EN (o texto pode misturar idiomas)."""
     lower = text.lower()
-    return [term for term in config.FORBIDDEN_TERMS if term in lower]
+    return [term for term in config.FORBIDDEN_TERMS + config.FORBIDDEN_TERMS_EN if term in lower]
 
 
-def gemini_summary(indicators: dict) -> tuple[str | None, str | None]:
-    """Resumo dos indicadores. Retorna (texto, modelo) ou (None, None)."""
+def gemini_summary(indicators: dict, lang: str = "pt") -> tuple[str | None, str | None]:
+    """Resumo dos indicadores no idioma pedido. Retorna (texto, modelo) ou (None, None)."""
     from google.genai import types
 
     text, model = _generate(
         json.dumps(indicators, ensure_ascii=False, indent=2),
-        types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.2),
+        types.GenerateContentConfig(system_instruction=PROMPTS[lang], temperature=0.2),
     )
     if not text:
         return None, None

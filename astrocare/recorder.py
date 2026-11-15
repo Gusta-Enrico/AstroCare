@@ -3,8 +3,8 @@
 No produto final, quem grava é o app; o backend só recebe o arquivo.
 
 Uso:
-    python -m astrocare.recorder AST-01
-Fale o reporte e aperte Enter para encerrar.
+    python -m astrocare.recorder
+Fale o reporte (começando por "Check-in diário, AST-XX") e aperte Enter.
 """
 import sys
 import wave
@@ -16,8 +16,12 @@ import sounddevice as sd
 from astrocare import config
 
 
-def record_until_enter(astronauta_id: str) -> str:
-    """Grava até o usuário apertar Enter. Retorna o caminho do WAV salvo."""
+def record_until_enter(prefix: str = "REPORTE") -> str:
+    """Grava até o usuário apertar Enter. Retorna o caminho do WAV salvo.
+
+    O arquivo se chama REPORTE_AAAAMMDD_HHMMSS.wav: quem está falando é
+    descoberto depois, pelo ID dito no início do reporte.
+    """
     chunks = []
 
     def callback(indata, frames, time, status):
@@ -27,11 +31,11 @@ def record_until_enter(astronauta_id: str) -> str:
 
     config.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = config.AUDIO_DIR / f"{astronauta_id}_{stamp}.wav"
+    path = config.AUDIO_DIR / f"{prefix}_{stamp}.wav"
 
     with sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1,
                         dtype="int16", callback=callback):
-        input("Gravando... fale o seu reporte e aperte Enter para parar.")
+        input("Gravando... comece com 'Check-in diário, AST-XX' e aperte Enter para parar.")
 
     audio = np.concatenate(chunks) if chunks else np.zeros((0, 1), dtype="int16")
     with wave.open(str(path), "wb") as wav:
@@ -45,6 +49,4 @@ def record_until_enter(astronauta_id: str) -> str:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Uso: python -m astrocare.recorder AST-01")
-    record_until_enter(sys.argv[1])
+    record_until_enter()

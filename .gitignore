@@ -1,3 +1,18 @@
+# Ambiente virtual e segredos (NUNCA sobem)
 .venv/
 .env
+
+# Dados locais: áudios, bancos SQLite, relatórios, planilha, modelos Vosk e classificador
 data/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor e sistema
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Scripts de verificação temporários das fases
+verificar_fase*.py

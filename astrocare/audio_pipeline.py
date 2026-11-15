@@ -1,20 +1,25 @@
-"""Processa um reporte em áudio e gera as métricas no formato da planilha.
+"""Processa um reporte em áudio como um DIA DE MISSÃO do cenário simulado.
+
+Modo de uso do protótipo: só simulação. Nenhum dado real é guardado como
+"fase Terra". O padrão da Terra vem do cenário simulado (demo_data.py),
+e cada gravação entra como o dia de missão correspondente à data dela.
 
 Fluxo:
     WAV -> métricas de voz (local) -> transcrição (Gemini)
-        -> notas do check-in ditas na fala + métricas de texto
-        -> uma linha com as mesmas colunas da aba Journal -> CSV
+        -> ID do astronauta DITO no início -> notas do check-in -> métricas de texto
+        -> inserido no cenário simulado no dia de missão da data da gravação
+        -> relatório do dia (comparação com o padrão da Terra) na hora
 
-De onde vem cada dado (nada é digitado):
-- astronauta: do nome do arquivo (AST-01_20261114_163358.wav).
-              No app, virá do login.
-- data e dia: da data da gravação, contada a partir do lançamento.
-- check-in:   das notas que o astronauta DIZ no áudio. Nota não dita
-              fica vazia; nunca é estimada.
+Se não der para identificar o astronauta pela fala, o reporte NÃO é
+inserido: um reporte na pessoa errada distorceria a comparação dela.
+
+O dia da missão vem da DATA REAL da gravação (ver sim_clock.py). Duas
+gravações no mesmo dia caem no mesmo dia de missão: vale a mais recente.
 
 Uso:
-    python -m astrocare.audio_pipeline --gravar AST-01      (grava e processa)
-    python -m astrocare.audio_pipeline data/audio/AST-01_20261114_163358.wav
+    python -m astrocare.audio_pipeline --gravar              (dia de hoje)
+    python -m astrocare.audio_pipeline --gravar --dia 55     (força um dia, p/ testes)
+    python -m astrocare.audio_pipeline data/audio/REPORTE_20261114_163358.wav
 """
 import argparse
 import re
@@ -23,57 +28,50 @@ from pathlib import Path
 
 import pandas as pd
 
-from astrocare import config
-from astrocare.checkin_parser import parse_checkin
+from astrocare import config, sim_clock
+from astrocare.checkin_parser import parse_checkin, parse_symptoms
 from astrocare.llm import transcribe_audio
+from astrocare.physio_sim import PhysioSimulator
+from astrocare.speaker_id import parse_spoken_id
 from astrocare.text_features import extract_text_features
 from astrocare.voice_features import extract_voice_features
 
 # Ordem FIXA das colunas no CSV. Sem isso, cada linha seria gravada na
 # ordem em que as métricas foram calculadas e os valores se desalinhariam.
 CSV_COLUMNS = (
-    ["astronauta_id", "dia_missao", "data", "arquivo", "transcricao"]
+    ["astronauta_id", "dia_missao", "data", "arquivo", "transcricao", "sintomas"]
     + config.METRICS_VOICE + config.METRICS_TEXT + config.METRICS_SELF_REPORT
+    + config.METRICS_MONITORING
 )
 
-# Ex.: AST-01_20261114_163358.wav -> ("AST-01", "20261114")
-FILENAME_PATTERN = re.compile(r"^(AST-\d+)_(\d{8})_\d{6}$")
+# REPORTE_20261114_163358.wav -> 14/11/2026
+FILENAME_DATE = re.compile(r"_(\d{8})_\d{6}$")
 
 
-def identify(wav_path: str) -> tuple[str, date]:
-    """Lê o astronauta e a data da gravação a partir do nome do arquivo."""
-    match = FILENAME_PATTERN.match(Path(wav_path).stem)
-    if not match:
-        raise ValueError(
-            f"Nome de arquivo fora do padrão AST-XX_AAAAMMDD_HHMMSS.wav: {wav_path}"
-        )
-    return match.group(1), datetime.strptime(match.group(2), "%Y%m%d").date()
+def recording_date(wav_path: str) -> date:
+    """Data em que o áudio foi gravado: pelo nome do arquivo ou, se não
+    houver data no nome, pela data de modificação do arquivo."""
+    match = FILENAME_DATE.search(Path(wav_path).stem)
+    if match:
+        return datetime.strptime(match.group(1), "%Y%m%d").date()
+    return date.fromtimestamp(Path(wav_path).stat().st_mtime)
 
 
-def mission_day(recording_date: date) -> int:
-    """Dia da missão: 0 no lançamento, negativo antes (fase Terra)."""
-    return (recording_date - config.LAUNCH_DATE).days
-
-
-def process_audio(wav_path: str) -> dict:
-    """Gera uma linha de métricas a partir de um reporte em áudio."""
-    astronauta_id, recording_date = identify(wav_path)
-    row = {
-        "astronauta_id": astronauta_id,
-        "dia_missao": mission_day(recording_date),
-        "data": recording_date.isoformat(),
-        # Só o NOME do arquivo: é o identificador do reporte. O caminho
-        # completo varia ("C:\\..." ou ".\\data\\...") e duplicaria linhas.
-        "arquivo": Path(wav_path).name,
-    }
+def process_audio(wav_path: str) -> tuple[dict, str | None]:
+    """Extrai as métricas do áudio. Retorna (linha, motivo de recusa ou None)."""
+    row = {"arquivo": Path(wav_path).name}
 
     voice = extract_voice_features(wav_path)
     row.update(voice)
 
     transcript = transcribe_audio(wav_path)
     row["transcricao"] = transcript
+    row["astronauta_id"], reason = parse_spoken_id(transcript)
+
     if transcript:
-        scores, text_without_checkin = parse_checkin(transcript)
+        # Sintomas: guardados como texto; saem do texto do sentimento
+        row["sintomas"], text_without_symptoms = parse_symptoms(transcript)
+        scores, text_without_checkin = parse_checkin(text_without_symptoms)
         row.update(scores)
         # Sentimento: sem o check-in ("estresse", "solidão" não são o relato).
         # Velocidade: com o texto todo, pois a duração inclui o check-in falado.
@@ -81,49 +79,114 @@ def process_audio(wav_path: str) -> dict:
         row.update(extract_text_features(text_without_checkin, duration))
         row["velocidade_fala_ppm"] = extract_text_features(transcript, duration)["velocidade_fala_ppm"]
     else:
-        row.update({m: None for m in config.METRICS_TEXT + config.METRICS_SELF_REPORT})
-    return row
+        row.update({m: None for m in config.METRICS_TEXT + config.METRICS_SELF_REPORT
+                    + config.METRICS_SELF_REPORT_SLEEP})
+        row["sintomas"] = None
+    return row, reason
 
 
-def save_row(row: dict) -> None:
-    """Salva a linha no CSV de reportes.
+def _load_scenario() -> pd.DataFrame:
+    if not config.DEMO_METRICS_CSV.exists():
+        raise SystemExit("Cenário simulado não encontrado. Rode antes: python -m astrocare.demo_data")
+    return pd.read_csv(config.DEMO_METRICS_CSV, encoding="utf-8")
 
-    Se o mesmo arquivo de áudio já foi processado antes (ex.: a transcrição
-    falhou e você rodou de novo), a linha antiga é SUBSTITUÍDA, não duplicada.
+
+def insert_in_scenario(row: dict, day: int, day_date: date) -> tuple[dict, bool]:
+    """Coloca o reporte no cenário simulado como o dia `day` da missão.
+
+    Se já existia um reporte desse astronauta nesse dia, ele é substituído
+    (vale o mais recente). Retorna (linha, se substituiu um reporte).
+    Rodar o demo_data de novo apaga as inserções (o cenário volta ao original).
     """
-    config.PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    new = pd.DataFrame([row], columns=CSV_COLUMNS)
-    if config.AUDIO_METRICS_CSV.exists():
-        old = pd.read_csv(config.AUDIO_METRICS_CSV, encoding="utf-8")
-        old = old[old["arquivo"] != row["arquivo"]]
-        new = pd.concat([old, new], ignore_index=True)
-    new.to_csv(config.AUDIO_METRICS_CSV, index=False, encoding="utf-8")
+    # Sensores do dia: SIMULADOS, continuando a mesma simulação (mesma semente).
+    # Sono e recuperação NÃO vêm daqui: são os ditos no check-in (ou ficam vazios).
+    sensors = PhysioSimulator(row["astronauta_id"], sim_clock.seed()).day(day, self_report_sleep=False)
+    row = {**row, **sensors, "dia_missao": day, "data": day_date.isoformat()}
+    scenario = _load_scenario()
+    same = (scenario["astronauta_id"] == row["astronauta_id"]) & (scenario["dia_missao"] == day)
+    replaced = bool(same.any())
+    scenario = pd.concat([scenario[~same], pd.DataFrame([row], columns=CSV_COLUMNS)],
+                         ignore_index=True)
+    scenario.sort_values(["astronauta_id", "dia_missao"]).to_csv(
+        config.DEMO_METRICS_CSV, index=False, encoding="utf-8")
+    return row, replaced
 
 
-def print_summary(row: dict) -> None:
-    fase = "Terra (padrão pessoal)" if row["dia_missao"] < 0 else "missão"
-    print(f"\n{row['astronauta_id']} | {row['data']} | dia {row['dia_missao']} | fase: {fase}")
-    print(f"Transcrição: {row['transcricao'] or '(indisponível)'}\n")
-    for metric in config.METRICS_VOICE + config.METRICS_TEXT + config.METRICS_SELF_REPORT:
-        value = row[metric]
-        shown = "não informado no áudio" if value is None and metric in config.METRICS_SELF_REPORT else value
+def print_metrics(row: dict) -> None:
+    print(f"\nTranscrição: {row['transcricao'] or '(indisponível)'}\n")
+    spoken = config.METRICS_SELF_REPORT + config.METRICS_SELF_REPORT_SLEEP
+    for metric in config.METRICS_VOICE + config.METRICS_TEXT + spoken:
+        value = row.get(metric)
+        shown = "não informado no áudio" if value is None and metric in spoken else value
         print(f"  {config.METRIC_LABELS.get(metric, metric)}: {shown}")
-    print(f"\nSalvo em {config.AUDIO_METRICS_CSV}")
+    print(f"  sintomas físicos relatados: {row.get('sintomas') or 'não informado no áudio'}")
+
+
+def evaluate_day(astronauta_id: str, day: int) -> None:
+    """Atualiza o banco e gera TODOS os relatórios e o gráfico do dia."""
+    from astrocare import ground_report, tracking_chart
+    from astrocare.daily_report import build, save_text_file
+    from astrocare.storage import save_daily_report, sync
+
+    # 1. Banco atualizado (histórico para gráficos e consultas)
+    sync("demo")
+
+    # 2. Relatório curto do dia: banco + arquivo .txt
+    text, status, changed, day = build(astronauta_id, day, "demo")
+    save_daily_report("demo", astronauta_id, day,
+                      datetime.now().isoformat(timespec="seconds"), status, changed, text)
+    files = [save_text_file(astronauta_id, day, "demo", text)]
+    print("\n" + "=" * 70 + "\n" + text + "\n" + "=" * 70)
+
+    # 3. Relatório completo para a base em Terra (HTML + JSON)
+    html_path, json_path, _ = ground_report.generate(astronauta_id, "demo", dia=day)
+    files += [html_path, json_path]
+
+    # 4. Gráfico de acompanhamento
+    metrics = tracking_chart._most_deviated("demo", astronauta_id)
+    files.append(Path(tracking_chart.draw("demo", astronauta_id, metrics)))
+
+    print("\nArquivos gerados:")
+    for f in files:
+        print(f"  {f}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Processa um reporte em áudio")
+    parser = argparse.ArgumentParser(description="Reporte em áudio como dia de missão (simulação)")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("wav", nargs="?", help="arquivo .wav já gravado")
-    group.add_argument("--gravar", metavar="AST-XX", help="grava agora e processa")
+    group.add_argument("--gravar", action="store_true", help="grava agora e processa")
+    parser.add_argument("--dia", type=int, metavar="N",
+                        help="força o dia da missão (padrão: pela data da gravação)")
     args = parser.parse_args()
 
     if args.gravar:
         from astrocare.recorder import record_until_enter
-        wav_path = record_until_enter(args.gravar)
+        wav_path = record_until_enter()
     else:
         wav_path = args.wav
 
-    row = process_audio(wav_path)
-    save_row(row)
-    print_summary(row)
+    row, reason = process_audio(wav_path)
+    print_metrics(row)
+
+    if reason:
+        print(f"\n⚠ REPORTE NÃO INSERIDO: {reason}")
+        print("  Grave de novo começando com 'Check-in diário, AST-XX'.")
+        raise SystemExit(1)
+
+    ast = row["astronauta_id"]
+    if args.dia is not None:
+        day, day_date = args.dia, sim_clock.date_of(args.dia)
+    else:
+        day_date = recording_date(wav_path)
+        day = sim_clock.mission_day(day_date)
+        if day < 0:
+            raise SystemExit(f"Gravação de {day_date:%d/%m/%Y} é anterior ao lançamento simulado "
+                             f"({sim_clock.launch():%d/%m/%Y}). Use --dia N para escolher o dia.")
+
+    row, replaced = insert_in_scenario(row, day, day_date)
+    print(f"\n{ast} | {day_date:%d/%m/%Y} = dia {day} da missão | inserido no cenário SIMULADO")
+    if replaced:
+        print("  (já havia um reporte deste astronauta neste dia: foi substituído pelo atual)")
+
+    evaluate_day(ast, day)

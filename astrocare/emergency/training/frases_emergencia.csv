@@ -1,0 +1,281 @@
+texto,idioma,rotulo
+parada cardíaca,pt,PCR
+parada cardiorrespiratória,pt,PCR
+o AST-03 teve uma parada cardíaca,pt,PCR
+acho que ele está tendo uma parada cardíaca,pt,PCR
+ele desmaiou e não responde,pt,PCR
+o comandante desmaiou de repente,pt,PCR
+ela perdeu a consciência do nada,pt,PCR
+o AST-02 apagou e não acorda,pt,PCR
+ele caiu inconsciente durante o exercício,pt,PCR
+não estou sentindo o pulso dele,pt,PCR
+ele está sem pulso,pt,PCR
+sem pulso e sem respiração,pt,PCR
+ela não está respirando e não tem pulso,pt,PCR
+o coração dele parou,pt,PCR
+o monitor mostra fibrilação ventricular,pt,PCR
+fibrilação ventricular no AST-04,pt,PCR
+o ECG está mostrando assistolia,pt,PCR
+assistolia no monitor,pt,PCR
+taquicardia ventricular sem pulso,pt,PCR
+o desfibrilador indicou ritmo chocável,pt,PCR
+precisamos do DEA agora ele não responde,pt,PCR
+ele estava falando e de repente desabou e não responde mais,pt,PCR
+perda súbita de consciência,pt,PCR
+o AST-01 está inconsciente e não tem pulso,pt,PCR
+encontrei ela desacordada no módulo,pt,PCR
+ele parou de respirar,pt,PCR
+alarme cardíaco do AST-03 disparou e ele está inconsciente,pt,PCR
+precisamos começar a massagem cardíaca,pt,PCR
+vamos fazer RCP nele,pt,PCR
+ele está roxo e não respira,pt,PCR
+o batimento sumiu do monitor,pt,PCR
+ela teve um colapso e está sem pulso,pt,PCR
+é uma parada ele não responde a nada,pt,PCR
+o tripulante desmaiou e não reage,pt,PCR
+linha reta no monitor cardíaco,pt,PCR
+cardiac arrest,en,PCR
+he is in cardiac arrest,en,PCR
+I think she is having a cardiac arrest,en,PCR
+the commander just collapsed and is not responding,en,PCR
+he passed out and won't wake up,en,PCR
+she lost consciousness suddenly,en,PCR
+AST-02 is unconscious,en,PCR
+he fainted and is unresponsive,en,PCR
+I can't feel a pulse,en,PCR
+he has no pulse,en,PCR
+no pulse and no breathing,en,PCR
+she is not breathing and has no pulse,en,PCR
+his heart stopped,en,PCR
+the monitor shows ventricular fibrillation,en,PCR
+ventricular fibrillation on AST-04,en,PCR
+the ECG shows asystole,en,PCR
+asystole on the monitor,en,PCR
+pulseless ventricular tachycardia,en,PCR
+the AED says shockable rhythm,en,PCR
+we need the AED now he is not responding,en,PCR
+he was talking and suddenly collapsed,en,PCR
+sudden loss of consciousness,en,PCR
+AST-01 is unconscious with no pulse,en,PCR
+I found her unresponsive in the module,en,PCR
+he stopped breathing,en,PCR
+the cardiac alarm went off and he is out,en,PCR
+we need to start chest compressions,en,PCR
+start CPR on him,en,PCR
+he is turning blue and not breathing,en,PCR
+the heartbeat is gone from the monitor,en,PCR
+she collapsed and has no pulse,en,PCR
+it's an arrest he is not responding to anything,en,PCR
+the crew member fainted and is not reacting,en,PCR
+flat line on the heart monitor,en,PCR
+code blue he's down,en,PCR
+minha visão está embaçada,pt,SANS
+estou com a vista turva,pt,SANS
+estou enxergando borrado,pt,SANS
+a visão do AST-02 ficou turva,pt,SANS
+estou com muita dor de cabeça,pt,SANS
+dor de cabeça forte e a visão embaçada,pt,SANS
+sinto uma pressão atrás dos olhos,pt,SANS
+pressão retro-orbital,pt,SANS
+meus olhos estão doendo por dentro,pt,SANS
+estou com uma pressão no fundo dos olhos e dor de cabeça,pt,SANS
+não consigo focar a vista,pt,SANS
+ele está reclamando que está vendo tudo embaçado,pt,SANS
+ela tem cefaleia há dois dias,pt,SANS
+cefaleia intensa,pt,SANS
+minha visão piorou muito desde ontem,pt,SANS
+estou perdendo parte do campo de visão,pt,SANS
+tem uma mancha no meu campo visual,pt,SANS
+estou vendo menos do lado esquerdo,pt,SANS
+dor de cabeça que não passa e vista turva,pt,SANS
+triagem periódica dos olhos,pt,SANS
+hora da triagem ocular programada,pt,SANS
+o exame de olho mostrou o nervo óptico inchado,pt,SANS
+o ultrassom mostrou bainha do nervo óptico aumentada,pt,SANS
+suspeita de edema de papila,pt,SANS
+acho que é a síndrome neuro-ocular,pt,SANS
+suspeita de SANS,pt,SANS
+pressão intracraniana alta,pt,SANS
+sinto a cabeça pesada e a visão embaçada,pt,SANS
+os óculos não estão mais corrigindo minha visão,pt,SANS
+estou com dificuldade para ler os painéis a visão está turva,pt,SANS
+visão embaçada e dor atrás dos olhos,pt,SANS
+ele diz que a cabeça está latejando e a vista está borrada,pt,SANS
+minha vista está desfocada,pt,SANS
+estou vendo duplo e com dor de cabeça,pt,SANS
+dor de cabeça forte desde que acordei,pt,SANS
+my vision is blurry,en,SANS
+I have blurred vision,en,SANS
+everything looks blurry,en,SANS
+AST-02's vision got blurry,en,SANS
+I have a really bad headache,en,SANS
+strong headache and blurry vision,en,SANS
+I feel pressure behind my eyes,en,SANS
+retro-orbital pressure,en,SANS
+my eyes hurt from the inside,en,SANS
+pressure behind the eyes and a headache,en,SANS
+I can't focus my eyes,en,SANS
+he is complaining that everything looks blurry,en,SANS
+she has had a headache for two days,en,SANS
+severe headache,en,SANS
+my eyesight got much worse since yesterday,en,SANS
+I'm losing part of my field of vision,en,SANS
+there is a spot in my visual field,en,SANS
+I can't see well on the left side,en,SANS
+a headache that won't go away and blurry vision,en,SANS
+periodic eye screening,en,SANS
+time for the scheduled eye screening,en,SANS
+the eye exam showed a swollen optic nerve,en,SANS
+the ultrasound showed an enlarged optic nerve sheath,en,SANS
+suspected papilledema,en,SANS
+I think it's the neuro-ocular syndrome,en,SANS
+suspected SANS,en,SANS
+high intracranial pressure,en,SANS
+my head feels heavy and my vision is blurred,en,SANS
+my glasses are not correcting my vision anymore,en,SANS
+I can't read the panels my vision is blurred,en,SANS
+blurry vision and pain behind the eyes,en,SANS
+he says his head is pounding and his vision is blurred,en,SANS
+my vision is out of focus,en,SANS
+I'm seeing double and have a headache,en,SANS
+bad headache since I woke up,en,SANS
+ele está muito agitado,pt,PSIQ
+o AST-04 está extremamente agitado e não para quieto,pt,PSIQ
+ela está delirando,pt,PSIQ
+ele está falando coisas sem sentido e delirando,pt,PSIQ
+ele está paranoico acha que estamos contra ele,pt,PSIQ
+ela acha que estamos tentando prejudicá-la,pt,PSIQ
+ele está agressivo com a tripulação,pt,PSIQ
+ele ameaçou bater em outro tripulante,pt,PSIQ
+ela está tentando abrir a escotilha,pt,PSIQ
+ele quer mexer nos comandos da nave sem motivo,pt,PSIQ
+ele está fora de si,pt,PSIQ
+crise de agitação psicomotora,pt,PSIQ
+surto psicótico,pt,PSIQ
+ele está tendo um surto,pt,PSIQ
+ela está gritando e se debatendo,pt,PSIQ
+ele está muito confuso e agressivo,pt,PSIQ
+ela ameaçou se machucar,pt,PSIQ
+ele disse que vai se ferir,pt,PSIQ
+risco de agressão,pt,PSIQ
+ele está vendo coisas que não existem,pt,PSIQ
+ela está ouvindo vozes,pt,PSIQ
+ele não reconhece a gente e está agressivo,pt,PSIQ
+o tripulante perdeu o controle e está quebrando coisas,pt,PSIQ
+paranoia aguda,pt,PSIQ
+ele está desconfiado de todos e muito tenso,pt,PSIQ
+ela trancou-se no módulo e está gritando,pt,PSIQ
+ele está ameaçando a tripulação,pt,PSIQ
+comportamento muito estranho e agressivo,pt,PSIQ
+ele está desorientado e agitado,pt,PSIQ
+ela está em pânico extremo e agressiva,pt,PSIQ
+ele não aceita conversar e está partindo para cima,pt,PSIQ
+crise comportamental grave,pt,PSIQ
+ele está atacando outro astronauta,pt,PSIQ
+delírio agudo,pt,PSIQ
+ele está muito alterado não dá para conversar,pt,PSIQ
+he is extremely agitated,en,PSIQ
+AST-04 is very agitated and won't calm down,en,PSIQ
+she is delirious,en,PSIQ
+he is saying things that make no sense and he's delirious,en,PSIQ
+he is paranoid and thinks we are against him,en,PSIQ
+she thinks we are trying to hurt her,en,PSIQ
+he is aggressive toward the crew,en,PSIQ
+he threatened to hit another crew member,en,PSIQ
+she is trying to open the hatch,en,PSIQ
+he wants to touch the spacecraft controls for no reason,en,PSIQ
+he is out of control,en,PSIQ
+psychomotor agitation crisis,en,PSIQ
+psychotic episode,en,PSIQ
+he is having a breakdown,en,PSIQ
+she is screaming and thrashing,en,PSIQ
+he is very confused and aggressive,en,PSIQ
+she threatened to hurt herself,en,PSIQ
+he said he is going to hurt himself,en,PSIQ
+risk of aggression,en,PSIQ
+he is seeing things that are not there,en,PSIQ
+she is hearing voices,en,PSIQ
+he doesn't recognize us and is aggressive,en,PSIQ
+the crew member lost control and is breaking things,en,PSIQ
+acute paranoia,en,PSIQ
+he is suspicious of everyone and very tense,en,PSIQ
+she locked herself in the module and is screaming,en,PSIQ
+he is threatening the crew,en,PSIQ
+very strange and aggressive behavior,en,PSIQ
+he is disoriented and agitated,en,PSIQ
+she is in extreme panic and aggressive,en,PSIQ
+he refuses to talk and is coming at us,en,PSIQ
+severe behavioral crisis,en,PSIQ
+he is attacking another astronaut,en,PSIQ
+acute delirium,en,PSIQ
+he is too agitated to talk to,en,PSIQ
+cortei a mão,pt,FORA_DO_ESCOPO
+ele cortou o dedo com a ferramenta,pt,FORA_DO_ESCOPO
+estou sangrando no braço,pt,FORA_DO_ESCOPO
+queimei a mão no aquecedor,pt,FORA_DO_ESCOPO
+acho que quebrei o braço,pt,FORA_DO_ESCOPO
+torci o tornozelo,pt,FORA_DO_ESCOPO
+ele bateu a cabeça mas está acordado e conversando,pt,FORA_DO_ESCOPO
+estou com dor de dente,pt,FORA_DO_ESCOPO
+estou com enjoo,pt,FORA_DO_ESCOPO
+vomitei depois do almoço,pt,FORA_DO_ESCOPO
+estou com dor de barriga,pt,FORA_DO_ESCOPO
+estou com febre,pt,FORA_DO_ESCOPO
+estou com tosse,pt,FORA_DO_ESCOPO
+estou com o nariz entupido,pt,FORA_DO_ESCOPO
+estou com dor nas costas,pt,FORA_DO_ESCOPO
+tenho uma alergia na pele,pt,FORA_DO_ESCOPO
+caiu algo no meu olho,pt,FORA_DO_ESCOPO
+estou com cólica,pt,FORA_DO_ESCOPO
+não consigo dormir,pt,FORA_DO_ESCOPO
+estou com saudade de casa,pt,FORA_DO_ESCOPO
+estou cansado hoje,pt,FORA_DO_ESCOPO
+estou com dor muscular depois do treino,pt,FORA_DO_ESCOPO
+tem um vazamento de água no módulo,pt,FORA_DO_ESCOPO
+o painel solar não está respondendo,pt,FORA_DO_ESCOPO
+perdemos comunicação com a Terra,pt,FORA_DO_ESCOPO
+o filtro de ar precisa de troca,pt,FORA_DO_ESCOPO
+qual é o horário do próximo treino,pt,FORA_DO_ESCOPO
+quero registrar meu check-in diário,pt,FORA_DO_ESCOPO
+qual é a previsão de chegada da carga,pt,FORA_DO_ESCOPO
+teste de microfone,pt,FORA_DO_ESCOPO
+olá AstroCare,pt,FORA_DO_ESCOPO
+nada só testando,pt,FORA_DO_ESCOPO
+não sei,pt,FORA_DO_ESCOPO
+cancelar,pt,FORA_DO_ESCOPO
+esquece,pt,FORA_DO_ESCOPO
+I cut my hand,en,FORA_DO_ESCOPO
+he cut his finger with the tool,en,FORA_DO_ESCOPO
+my arm is bleeding,en,FORA_DO_ESCOPO
+I burned my hand on the heater,en,FORA_DO_ESCOPO
+I think I broke my arm,en,FORA_DO_ESCOPO
+I twisted my ankle,en,FORA_DO_ESCOPO
+he hit his head but he is awake and talking,en,FORA_DO_ESCOPO
+I have a toothache,en,FORA_DO_ESCOPO
+I feel nauseous,en,FORA_DO_ESCOPO
+I threw up after lunch,en,FORA_DO_ESCOPO
+I have a stomach ache,en,FORA_DO_ESCOPO
+I have a fever,en,FORA_DO_ESCOPO
+I have a cough,en,FORA_DO_ESCOPO
+my nose is stuffy,en,FORA_DO_ESCOPO
+my back hurts,en,FORA_DO_ESCOPO
+I have a skin rash,en,FORA_DO_ESCOPO
+something got in my eye,en,FORA_DO_ESCOPO
+I have cramps,en,FORA_DO_ESCOPO
+I can't sleep,en,FORA_DO_ESCOPO
+I miss home,en,FORA_DO_ESCOPO
+I'm tired today,en,FORA_DO_ESCOPO
+my muscles are sore after the workout,en,FORA_DO_ESCOPO
+there is a water leak in the module,en,FORA_DO_ESCOPO
+the solar panel is not responding,en,FORA_DO_ESCOPO
+we lost communication with Earth,en,FORA_DO_ESCOPO
+the air filter needs to be replaced,en,FORA_DO_ESCOPO
+what time is the next training session,en,FORA_DO_ESCOPO
+I want to record my daily check-in,en,FORA_DO_ESCOPO
+when is the cargo arriving,en,FORA_DO_ESCOPO
+microphone test,en,FORA_DO_ESCOPO
+hello AstroCare,en,FORA_DO_ESCOPO
+nothing just testing,en,FORA_DO_ESCOPO
+I don't know,en,FORA_DO_ESCOPO
+cancel,en,FORA_DO_ESCOPO
+never mind,en,FORA_DO_ESCOPO
