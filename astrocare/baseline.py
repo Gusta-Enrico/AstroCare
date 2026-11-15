@@ -6,8 +6,11 @@ Por que mediana e MAD, e não média e desvio-padrão?
 - O MAD é multiplicado por 1,4826 para ficar na mesma escala de um
   desvio-padrão. Assim, "z = 2" continua significando "2 desvios".
 """
+import argparse
+
 import pandas as pd
 
+from astrocare import config
 from astrocare.ingestion import load_dataset
 
 MAD_TO_STD = 1.4826
@@ -43,8 +46,33 @@ def compute_baseline(data: pd.DataFrame) -> pd.DataFrame:
     return baseline
 
 
+def baseline_progress(data: pd.DataFrame) -> pd.DataFrame:
+    """Quantos dias de reporte na Terra cada astronauta já tem.
+
+    O padrão só é usado quando atinge MIN_RECORDS dias; antes disso,
+    está "em construção" e nenhuma comparação é feita.
+    """
+    terra = data[data["fase"] == "terra"]
+    progress = (
+        terra.groupby("astronauta_id")["dia_missao"].nunique()
+        .rename("dias_na_terra").reset_index()
+    )
+    progress["minimo"] = MIN_RECORDS
+    progress["pronto"] = progress["dias_na_terra"] >= MIN_RECORDS
+    return progress
+
+
 if __name__ == "__main__":
-    data, _ = load_dataset()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--fonte", choices=config.SOURCES, default="planilha")
+    data, _ = load_dataset(parser.parse_args().fonte)
+
+    print("Progresso do padrão pessoal (dias de reporte na Terra):")
+    for _, r in baseline_progress(data).iterrows():
+        status = "pronto" if r["pronto"] else "em construção"
+        print(f"  {r['astronauta_id']}: {r['dias_na_terra']}/{r['minimo']}  ({status})")
+    print()
+
     baseline = compute_baseline(data)
 
     print(f"Padrões calculados: {len(baseline)} "

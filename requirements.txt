@@ -2,3 +2,6 @@ pandas
 openpyxl
 python-dotenv
 google-genai
+numpy
+praat-parselmouth
+sounddevice

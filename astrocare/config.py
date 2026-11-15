@@ -3,11 +3,26 @@
 Todo caminho, nome de aba e lista de métricas fica aqui, para que
 nenhum outro módulo tenha esses valores "chumbados" no código.
 """
+from datetime import date
 from pathlib import Path
+
+# --- Missão ---------------------------------------------------------------
+# Data do lançamento (dia 0), conforme a aba Leia-me da planilha.
+# Antes dela, o dia é negativo = fase Terra (construção do padrão pessoal).
+LAUNCH_DATE = date(2027, 3, 1)
+
+# --- Fontes de dados -----------------------------------------------------
+# Cada fonte tem padrões e comparações PRÓPRIOS. Nunca se misturam:
+# o "AST-01" da planilha (simulado) não é a mesma pessoa do "AST-01" do áudio.
+SOURCES = ("planilha", "audio")
 
 # --- Caminhos -------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 EXCEL_PATH = BASE_DIR / "data" / "raw" / "BioShield_dados_simulados.xlsx"
+
+AUDIO_DIR = BASE_DIR / "data" / "audio"            # gravações dos reportes
+PROCESSED_DIR = BASE_DIR / "data" / "processed"    # métricas extraídas
+AUDIO_METRICS_CSV = PROCESSED_DIR / "reportes_audio.csv"
 
 # --- Chaves que identificam uma medição -----------------------------------
 KEY_COLS = ["astronauta_id", "dia_missao"]
@@ -129,6 +144,13 @@ DISCLAIMER = (
     "e à tripulação. Não é diagnóstico clínico nem psicológico; a interpretação "
     "cabe a um profissional de saúde qualificado."
 )
+
+# --- Áudio ----------------------------------------------------------------
+SAMPLE_RATE = 16000       # 16 kHz mono: padrão para análise de fala
+PITCH_FLOOR_HZ = 75       # faixa de busca do tom de voz humano
+PITCH_CEILING_HZ = 500
+SILENCE_DB_BELOW_PEAK = 25  # quanto abaixo do pico conta como silêncio
+MIN_PAUSE_S = 0.25          # silêncios menores que isso não são pausa
 
 if __name__ == "__main__":
     print(EXCEL_PATH, EXCEL_PATH.exists())

@@ -12,9 +12,12 @@ Uma métrica é sinalizada quando as camadas 2 e 3 passam do limiar.
 Um sinal diário exige várias métricas sinalizadas por vários dias seguidos.
 Há dois níveis: "atencao" (mais sensível, avisa antes) e "alerta".
 """
+import argparse
+
 import pandas as pd
 
-from astrocare.baseline import compute_baseline
+from astrocare import config
+from astrocare.baseline import MIN_RECORDS, compute_baseline
 from astrocare.ingestion import load_dataset
 
 # Limiares em valores estatísticos convencionais, sem ajuste fino ao
@@ -27,6 +30,11 @@ ROLLING_DAYS = 7         # janela da média móvel
 MIN_DAYS_IN_WINDOW = 4   # mínimo de registros na janela (o journal tem lacunas)
 MIN_METRICS_FLAGGED = 3  # quantas métricas desviadas ao mesmo tempo
 MIN_CONSECUTIVE_DAYS = 5 # persistência necessária para virar alerta
+MIN_CREW = 3             # mínimo de astronautas para a camada 3 fazer sentido
+
+
+class NotEnoughDataError(Exception):
+    """Ainda não há dados suficientes para comparar."""
 
 
 def score_individual(data: pd.DataFrame, baseline: pd.DataFrame) -> pd.DataFrame:
@@ -59,18 +67,25 @@ def compare_with_crew(smoothed: pd.DataFrame) -> pd.DataFrame:
 
     Usa só os outros (e não a tripulação inteira) para que a própria
     pessoa não "puxe" a referência na direção dela.
+
+    Com menos de MIN_CREW astronautas, a camada fica DESLIGADA: a mediana
+    de 1 ou 2 pessoas não representa "a tripulação". Nesse caso só vale a
+    comparação individual, e a coluna com_tripulacao = False avisa isso.
     """
     wide = smoothed.pivot_table(
         index=["dia_missao", "metrica"], columns="astronauta_id", values="z_suavizado"
     )
+    crew_on = len(wide.columns) >= MIN_CREW
     result = []
     for ast in wide.columns:
-        others = wide.drop(columns=ast).median(axis=1)
+        others = wide.drop(columns=ast).median(axis=1) if crew_on else float("nan")
         result.append(pd.DataFrame({
             "astronauta_id": ast,
             "z_suavizado": wide[ast],
             "z_tripulacao": others,
-            "z_vs_tripulacao": wide[ast] - others,
+            # Sem tripulação, o desvio "vs. tripulação" é o próprio desvio individual
+            "z_vs_tripulacao": wide[ast] - others if crew_on else wide[ast],
+            "com_tripulacao": crew_on,
         }).reset_index())
     return pd.concat(result, ignore_index=True).dropna(subset=["z_suavizado"])
 
@@ -112,16 +127,32 @@ def daily_status(flagged: pd.DataFrame) -> pd.DataFrame:
     return daily
 
 
-def run_comparison() -> tuple[pd.DataFrame, pd.DataFrame]:
+def run_comparison(source: str = "planilha") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Executa as três camadas. Retorna (detalhe por métrica, resumo diário)."""
-    data, _ = load_dataset()
+    data, _ = load_dataset(source)
     baseline = compute_baseline(data)
-    flagged = flag_metrics(compare_with_crew(smooth(score_individual(data, baseline))))
+    if not baseline["confiavel"].any():
+        raise NotEnoughDataError(
+            "Nenhum astronauta tem padrão pessoal pronto ainda "
+            f"(mínimo de {MIN_RECORDS} dias de reporte na Terra)."
+        )
+    scored = score_individual(data, baseline)
+    if scored.empty:
+        raise NotEnoughDataError("Ainda não há reportes da fase de missão para comparar.")
+    flagged = flag_metrics(compare_with_crew(smooth(scored)))
     return flagged, daily_status(flagged)
 
 
 if __name__ == "__main__":
-    flagged, daily = run_comparison()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--fonte", choices=config.SOURCES, default="planilha")
+    try:
+        flagged, daily = run_comparison(parser.parse_args().fonte)
+    except NotEnoughDataError as exc:
+        raise SystemExit(f"Ainda não é possível comparar: {exc}")
+    if not flagged["com_tripulacao"].all():
+        print("AVISO: menos de 3 astronautas nesta fonte; comparação com a "
+              "tripulação desligada (só comparação individual).\n")
 
     print("Primeiro dia de cada nível, por astronauta:")
     for ast, group in daily.groupby("astronauta_id"):
